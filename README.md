@@ -87,6 +87,14 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+To use a different port, set the `PORT` variable before running:
+
+```bash
+PORT=4000 npm run dev
+```
+
+Or update `PORT` in your `.env` file and change `NEXTAUTH_URL` to match (e.g. `http://localhost:4000`).
+
 ## Environment Variables
 
 Create a `.env` file in the project root with the following variables:
@@ -103,6 +111,9 @@ NEXTAUTH_URL="http://localhost:3000"             # your app URL
 OPENAI_API_KEY="sk-your-openai-api-key"
 OPENAI_BASE_URL="https://api.openai.com/v1"     # or custom endpoint
 OPENAI_MODEL="gpt-4o-mini"                      # or gpt-4o, gpt-3.5-turbo, etc.
+
+# Server port (default: 3000)
+PORT=3000
 ```
 
 ### Generating AUTH_SECRET
