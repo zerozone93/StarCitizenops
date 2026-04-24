@@ -5,18 +5,20 @@ import { z } from "zod"
 
 const schema = z.object({ body: z.string().min(1).max(2000) })
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const comments = await prisma.comment.findMany({
-    where: { operationId: params.id },
+    where: { operationId: id },
     include: { user: { select: { name: true, email: true } } },
     orderBy: { createdAt: "asc" },
   })
   return NextResponse.json(comments)
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
 
   try {
     const body = await req.json()
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const comment = await prisma.comment.create({
       data: {
-        operationId: params.id,
+        operationId: id,
         userId: session.user.id,
         body: commentBody,
       },

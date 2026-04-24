@@ -13,11 +13,12 @@ import { MapPin, Calendar, Shield, Building2, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
-export default async function OperationDetailPage({ params }: { params: { id: string } }) {
+export default async function OperationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requireAuth()
+  const { id } = await params
 
   const operation = await prisma.operation.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       organization: true,
       commander: { select: { id: true, name: true, email: true } },

@@ -9,11 +9,12 @@ import { Tag, Users, Crosshair } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { OperationCard } from "@/components/operations/operation-card"
 
-export default async function OrganizationDetailPage({ params }: { params: { id: string } }) {
+export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAuth()
+  const { id } = await params
 
   const org = await prisma.organization.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       owner: { select: { name: true, email: true } },
       members: { include: { user: { select: { id: true, name: true, email: true } } } },

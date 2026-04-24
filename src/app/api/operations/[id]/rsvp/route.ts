@@ -5,17 +5,18 @@ import { z } from "zod"
 
 const schema = z.object({ status: z.enum(["ATTENDING", "MAYBE", "DECLINED"]) })
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
 
   try {
     const body = await req.json()
     const { status } = schema.parse(body)
 
     const rsvp = await prisma.rSVP.upsert({
-      where: { operationId_userId: { operationId: params.id, userId: session.user.id } },
-      create: { operationId: params.id, userId: session.user.id, status },
+      where: { operationId_userId: { operationId: id, userId: session.user.id } },
+      create: { operationId: id, userId: session.user.id, status },
       update: { status },
     })
 

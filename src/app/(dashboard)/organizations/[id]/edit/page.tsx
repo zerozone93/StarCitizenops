@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,8 @@ import { Loader2 } from "lucide-react"
 
 const FOCUS_TYPES = ["MILITARY","LOGISTICS","MINING","SALVAGE","PIRACY","SECURITY","EXPLORATION","TRADE","MEDICAL","RACING","MIXED"]
 
-export default function EditOrganizationPage({ params }: { params: { id: string } }) {
+export default function EditOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
@@ -19,13 +20,13 @@ export default function EditOrganizationPage({ params }: { params: { id: string 
   const [form, setForm] = useState({ name: "", tag: "", description: "", focusType: "MIXED", visibility: "PUBLIC" })
 
   useEffect(() => {
-    fetch(`/api/organizations/${params.id}`)
+    fetch(`/api/organizations/${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.id) setForm({ name: data.name, tag: data.tag, description: data.description ?? "", focusType: data.focusType, visibility: data.visibility })
       })
       .finally(() => setFetching(false))
-  }, [params.id])
+  }, [id])
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -36,14 +37,14 @@ export default function EditOrganizationPage({ params }: { params: { id: string 
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`/api/organizations/${params.id}`, {
+      const res = await fetch(`/api/organizations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       })
       const data = await res.json()
       if (!res.ok) setError(data.error ?? "Failed to update")
-      else router.push(`/organizations/${params.id}`)
+      else router.push(`/organizations/${id}`)
     } catch {
       setError("Network error")
     } finally {
