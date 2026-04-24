@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  name              String?
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  starCitizenHandle String?
+  bio               String?
+  timezone          String?
+  availability      String?
+  preferredRoles    String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  organizationMemberships OrganizationMember[]
+  ownedOrganizations    Organization[]        @relation("OrgOwner")
+  commandedOperations   Operation[]           @relation("OperationCommander")
+  operationParticipants OperationParticipant[]
+  ships                 Ship[]
+  groundVehicles        GroundVehicle[]
+  comments              Comment[]
+  notifications         Notification[]
+  aiPlans               AIGeneratedPlan[]
+  afterActionReports    AfterActionReport[]
+  rsvps                 RSVP[]
+  activityFeedItems     ActivityFeedItem[]
+  createdAlliances      Alliance[]            @relation("AllianceCreator")
+  createdCoalitions     Coalition[]           @relation("CoalitionCreator")
+  roleAssignments       RoleAssignment[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum OrgFocusType {
+  MILITARY
+  LOGISTICS
+  MINING
+  SALVAGE
+  PIRACY
+  SECURITY
+  EXPLORATION
+  TRADE
+  MEDICAL
+  RACING
+  MIXED
+}
+
+enum OrgVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum OrgRole {
+  OWNER
+  OFFICER
+  MEMBER
+  GUEST
+}
+
+model Organization {
+  id          String        @id @default(cuid())
+  name        String
+  tag         String        @unique
+  description String?       @db.Text
+  focusType   OrgFocusType  @default(MIXED)
+  visibility  OrgVisibility @default(PUBLIC)
+  logoUrl     String?
+  bannerUrl   String?
+  ownerId     String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  owner                 User                   @relation("OrgOwner", fields: [ownerId], references: [id])
+  members               OrganizationMember[]
+  operations            Operation[]
+  operationParticipants OperationParticipant[]
+  allianceMembers       AllianceMember[]
+  coalitionMembers      CoalitionMember[]
+  operationAssets       OperationAsset[]
+  activityFeedItems     ActivityFeedItem[]
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           OrgRole  @default(MEMBER)
+  title          String?
+  joinedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Alliance {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy  User             @relation("AllianceCreator", fields: [createdById], references: [id])
+  members    AllianceMember[]
+  coalitions Coalition[]
+}
+
+model AllianceMember {
+  id             String   @id @default(cuid())
+  allianceId     String
+  organizationId String
+  joinedAt       DateTime @default(now())
+
+  alliance     Alliance     @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([allianceId, organizationId])
+}
+
+enum OperationType {
+  FLEET_PATROL
+  GROUND_ASSAULT
+  BOUNTY_OPERATION
+  CARGO_CONVOY
+  MINING_SECURITY
+  SALVAGE_OPERATION
+  RESCUE_OPERATION
+  MEDICAL_SUPPORT
+  EXPLORATION_MISSION
+  BASE_DEFENSE
+  JOINT_FLEET_EXERCISE
+  COMBINED_ARMS_ASSAULT
+  PIRACY_INTERDICTION
+  ANTI_PIRACY_ESCORT
+  CUSTOM
+}
+
+enum ThreatLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OperationStatus {
+  PLANNING
+  BRIEFING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  DEBRIEF
+}
+
+enum OperationVisibility {
+  PUBLIC
+  COALITION
+  ORGANIZATION
+  PRIVATE
+}
+
+model Coalition {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  operationId String?
+  allianceId  String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy    User              @relation("CoalitionCreator", fields: [createdById], references: [id])
+  operation    Operation?        @relation("CoalitionLinkedOperation", fields: [operationId], references: [id])
+  alliance     Alliance?         @relation(fields: [allianceId], references: [id])
+  members      CoalitionMember[]
+  operations   Operation[]       @relation("CoalitionOperations")
+}
+
+model CoalitionMember {
+  id             String   @id @default(cuid())
+  coalitionId    String
+  organizationId String
+  role           String?
+  joinedAt       DateTime @default(now())
+
+  coalition    Coalition    @relation(fields: [coalitionId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([coalitionId, organizationId])
+}
+
+model Operation {
+  id                String              @id @default(cuid())
+  title             String
+  type              OperationType       @default(CUSTOM)
+  description       String?             @db.Text
+  objective         String?             @db.Text
+  location          String?
+  threatLevel       ThreatLevel         @default(MEDIUM)
+  startTime         DateTime?
+  endTime           DateTime?
+  status            OperationStatus     @default(PLANNING)
+  visibility        OperationVisibility @default(PUBLIC)
+  commanderId       String
+  organizationId    String
+  coalitionId       String?
+  missionBrief      String?             @db.Text
+  commsPlan         String?             @db.Text
+  rulesOfEngagement String?             @db.Text
+  rallyPoints       String?             @db.Text
+  extractionPlan    String?             @db.Text
+  contingencyPlans  String?             @db.Text
+  requiredSupplies  String?             @db.Text
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  commander          User                   @relation("OperationCommander", fields: [commanderId], references: [id])
+  organization       Organization           @relation(fields: [organizationId], references: [id])
+  coalition          Coalition?             @relation("CoalitionOperations", fields: [coalitionId], references: [id])
+  coalitionRef       Coalition[]            @relation("CoalitionLinkedOperation")
+  participants       OperationParticipant[]
+  assets             OperationAsset[]
+  comments           Comment[]
+  rsvps              RSVP[]
+  afterActionReports AfterActionReport[]
+  aiPlans            AIGeneratedPlan[]
+  activityFeedItems  ActivityFeedItem[]
+  roleAssignments    RoleAssignment[]
+}
+
+enum ParticipantStatus {
+  INVITED
+  CONFIRMED
+  DECLINED
+  STANDBY
+}
+
+model OperationParticipant {
+  id             String            @id @default(cuid())
+  operationId    String
+  userId         String
+  organizationId String?
+  assignedRole   String?
+  team           String?
+  status         ParticipantStatus @default(INVITED)
+  createdAt      DateTime          @default(now())
+
+  operation    Operation     @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@unique([operationId, userId])
+}
+
+enum AssetCategory {
+  CAPITAL_SHIP
+  FIGHTER
+  BOMBER
+  TRANSPORT
+  MEDICAL_SHIP
+  MINING_SHIP
+  SALVAGE_SHIP
+  EXPLORATION_SHIP
+  GROUND_VEHICLE
+  INFANTRY
+  SUPPORT
+}
+
+model OperationAsset {
+  id                  String        @id @default(cuid())
+  operationId         String
+  ownerUserId         String?
+  ownerOrganizationId String?
+  assetType           String
+  name                String
+  category            AssetCategory
+  quantity            Int           @default(1)
+  assignedTo          String?
+  notes               String?
+
+  operation Operation     @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  ownerOrg  Organization? @relation(fields: [ownerOrganizationId], references: [id])
+}
+
+model Ship {
+  id           String  @id @default(cuid())
+  userId       String
+  name         String
+  manufacturer String?
+  role         String?
+  size         String?
+  quantity     Int     @default(1)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GroundVehicle {
+  id       String @id @default(cuid())
+  userId   String
+  name     String
+  role     String?
+  quantity Int    @default(1)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RoleAssignment {
+  id          String  @id @default(cuid())
+  operationId String
+  userId      String
+  role        String
+  team        String?
+  notes       String?
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([operationId, userId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  operationId String
+  userId      String
+  body        String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+enum NotificationType {
+  OPERATION_INVITE
+  OPERATION_UPDATE
+  COALITION_INVITE
+  ORG_INVITE
+  COMMENT
+  RSVP_UPDATE
+  ASSIGNMENT
+  GENERAL
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType @default(GENERAL)
+  title     String
+  body      String?
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AIGeneratedPlan {
+  id          String   @id @default(cuid())
+  operationId String?
+  userId      String
+  prompt      String   @db.Text
+  result      String   @db.Text
+  createdAt   DateTime @default(now())
+
+  operation Operation? @relation(fields: [operationId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+}
+
+model AfterActionReport {
+  id                 String   @id @default(cuid())
+  operationId        String
+  authorId           String
+  summary            String?  @db.Text
+  whatWentWell       String?  @db.Text
+  whatWentWrong      String?  @db.Text
+  lessonsLearned     String?  @db.Text
+  casualtiesOrLosses String?  @db.Text
+  recommendations    String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id])
+}
+
+enum RSVPStatus {
+  ATTENDING
+  MAYBE
+  DECLINED
+}
+
+model RSVP {
+  id          String     @id @default(cuid())
+  operationId String
+  userId      String
+  status      RSVPStatus @default(MAYBE)
+  note        String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  operation Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([operationId, userId])
+}
+
+model ActivityFeedItem {
+  id             String   @id @default(cuid())
+  type           String
+  title          String
+  body           String?
+  userId         String?
+  organizationId String?
+  operationId    String?
+  createdAt      DateTime @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  operation    Operation?    @relation(fields: [operationId], references: [id])
+}
