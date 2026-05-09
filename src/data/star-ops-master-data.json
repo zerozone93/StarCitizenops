@@ -185,18 +185,6 @@
       "label": "Star Citizen Game - Nyx System (Planned)",
       "url": "https://robertsspaceindustries.com/",
       "type": "game_data"
-    },
-    {
-      "id": "src_game_pyro_location",
-      "label": "Star Citizen Game - Pyro System Locations",
-      "url": "https://starcitizen.tools/Pyro",
-      "type": "game_data"
-    },
-    {
-      "id": "src_game_nyx_location",
-      "label": "Star Citizen Game - Nyx System (Planned)",
-      "url": "https://robertsspaceindustries.com/",
-      "type": "game_data"
     }
   ],
   "gameSystems": [
@@ -418,22 +406,6 @@
       "systemId": "stanton",
       "locationType": "poi_group",
       "notes": "Used for Janalite spawns on select moons"
-    },
-    {
-      "id": "nyx",
-      "name": "Nyx",
-      "systemId": "nyx",
-      "locationType": "system",
-      "parent": null,
-      "liveSummary": "Nyx system in Star Citizen"
-    },
-    {
-      "id": "nyx-station-primary",
-      "name": "Nyx Primary Station",
-      "systemId": "nyx",
-      "locationType": "station",
-      "parent": "Nyx",
-      "liveSummary": "Main trading hub in Nyx system"
     },
     {
       "id": "nyx",
@@ -846,90 +818,6 @@
       "verificationStatus": "needs_manual_mapping",
       "sourceRefs": [
         "src_wiki_garrity"
-      ]
-    },
-    {
-      "id": "ruin_station_weapons",
-      "name": "Ruin Station Armory",
-      "category": "weapons_and_armor",
-      "locationId": "ruin-station",
-      "subLocation": "Black Market Trading Post",
-      "products": [
-        "personal_weapons",
-        "personal_armor",
-        "weapon_attachments"
-      ],
-      "verificationStatus": "community_verified",
-      "sourceRefs": [
-        "src_game_pyro_location"
-      ]
-    },
-    {
-      "id": "terminus_general_store",
-      "name": "Terminus Trading Hub",
-      "category": "weapons_and_armor",
-      "locationId": "terminus",
-      "subLocation": "Main Concourse",
-      "products": [
-        "personal_weapons",
-        "personal_armor",
-        "ship_components",
-        "mining_tools"
-      ],
-      "verificationStatus": "community_verified",
-      "sourceRefs": [
-        "src_game_pyro_location"
-      ]
-    },
-    {
-      "id": "bloom_outpost",
-      "name": "Bloom Settlement Trading Post",
-      "category": "weapons_and_armor",
-      "locationId": "bloom",
-      "subLocation": "Trading Outpost",
-      "products": [
-        "personal_weapons",
-        "personal_armor",
-        "mining_tools"
-      ],
-      "verificationStatus": "community_verified",
-      "sourceRefs": [
-        "src_game_pyro_location"
-      ]
-    },
-    {
-      "id": "nyx_station_weapons",
-      "name": "Nyx Defense Systems",
-      "category": "weapons_and_armor",
-      "locationId": "nyx-station-primary",
-      "subLocation": "Weapons District",
-      "products": [
-        "personal_weapons",
-        "personal_armor",
-        "ship_weapons",
-        "weapon_attachments"
-      ],
-      "verificationStatus": "community_verified",
-      "sourceRefs": [
-        "src_game_nyx_location"
-      ]
-    },
-    {
-      "id": "nyx_station_general",
-      "name": "Nyx Trading Exchange",
-      "category": "general_merchants",
-      "locationId": "nyx-station-primary",
-      "subLocation": "Commerce Hub",
-      "products": [
-        "personal_weapons",
-        "personal_armor",
-        "ship_components",
-        "mining_tools",
-        "clothing"
-      ],
-      "verificationStatus": "community_verified",
-      "sourceRefs": [
-        "src_game_nyx_location"
       ]
     },
     {
