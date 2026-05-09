@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Shield, Crosshair, Brain, Users, Building2, ChevronRight, Zap, Lock, Globe } from "lucide-react"
+import { ItemFinderSection } from "@/components/home/item-finder-section"
 import { Button } from "@/components/ui/button"
 
 const features = [
@@ -74,6 +75,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <ItemFinderSection />
 
       <section className="max-w-6xl mx-auto px-4 py-16 text-center">
         <div className="cyber-border rounded-xl bg-slate-900 p-12">

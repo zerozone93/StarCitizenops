@@ -1,0 +1,2116 @@
+{
+  "meta": {
+    "appName": "Star Ops Item Finder",
+    "datasetName": "star-ops-master-data",
+    "generatedOn": "2026-04-11",
+    "gameVersionTarget": "Star Citizen Alpha 4.7.x",
+    "schemaVersion": "2.0.0",
+    "notes": [
+      "This file is a broad starter dataset for a frontend app. It mixes verified facts, high-confidence general mappings, and clearly flagged placeholders.",
+      "Exact vendor stock, loot tables, and blueprint ingredients can change by patch. Items with verificationStatus != 'verified' should be reviewed before being treated as authoritative.",
+      "Use sourceRefs on each record to trace where a field came from."
+    ]
+  },
+  "sourceCatalog": [
+    {
+      "id": "src_official_crafting_guide",
+      "label": "Official crafting guide / current crafting loop summary",
+      "url": "https://robertsspaceindustries.com/comm-link/transmission/19652-Crafting-Gameplay-Guide",
+      "type": "official"
+    },
+    {
+      "id": "src_official_patch_47_known_issues",
+      "label": "Official Alpha 4.7 known issues",
+      "url": "https://support.robertsspaceindustries.com/hc/en-us/articles/360056254754-Star-Citizen-Alpha-4-7-Known-Issues",
+      "type": "official"
+    },
+    {
+      "id": "src_wiki_mining",
+      "label": "Star Citizen Wiki - Mining",
+      "url": "https://starcitizen.tools/Mining",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_hadanite",
+      "label": "Star Citizen Wiki - Hadanite",
+      "url": "https://starcitizen.tools/Hadanite",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_aphorite",
+      "label": "Star Citizen Wiki - Aphorite",
+      "url": "https://starcitizen.tools/Aphorite",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_dolivine",
+      "label": "Star Citizen Wiki - Dolivine",
+      "url": "https://starcitizen.tools/Dolivine",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_janalite",
+      "label": "Star Citizen Wiki - Janalite",
+      "url": "https://starcitizen.tools/Janalite",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_quantanium_raw",
+      "label": "Star Citizen Wiki - Quantanium (Raw)",
+      "url": "https://starcitizen.tools/Quantanium_(Raw)",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_pyro_multitool",
+      "label": "Star Citizen Wiki - Pyro RYT Multi-Tool",
+      "url": "https://starcitizen.tools/Pyro_RYT_Multi-Tool",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_orebit",
+      "label": "Star Citizen Wiki - OreBit Mining Attachment",
+      "url": "https://starcitizen.tools/OreBit_Mining_Attachment",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_macflex_rucksack",
+      "label": "Star Citizen Wiki - MacFlex Backpack",
+      "url": "https://starcitizen.tools/MacFlex_%22Rucksack%22_Backpack",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_roc",
+      "label": "Star Citizen Wiki - ROC",
+      "url": "https://starcitizen.tools/ROC",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_mining_ships",
+      "label": "Star Citizen Wiki - Mining ships",
+      "url": "https://starcitizen.tools/Mining_ships",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_blueprint",
+      "label": "Star Citizen Wiki - Blueprint",
+      "url": "https://starcitizen.tools/Blueprint",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_personal_armor",
+      "label": "Star Citizen Wiki - Personal armor",
+      "url": "https://starcitizen.tools/Personal_armor",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_adp_mk4",
+      "label": "Star Citizen Wiki - ADP-mk4",
+      "url": "https://starcitizen.tools/ADP-mk4",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_macflex",
+      "label": "Star Citizen Wiki - MacFlex",
+      "url": "https://starcitizen.tools/MacFlex",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_centermass",
+      "label": "Star Citizen Wiki - CenterMass",
+      "url": "https://starcitizen.tools/CenterMass",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_cubby_blast",
+      "label": "Star Citizen Wiki - Cubby Blast",
+      "url": "https://starcitizen.tools/Cubby_Blast",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_live_fire",
+      "label": "Star Citizen Wiki - Live Fire Weapons",
+      "url": "https://starcitizen.tools/Live_Fire_Weapons",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_tammany",
+      "label": "Star Citizen Wiki - Tammany and Sons",
+      "url": "https://starcitizen.tools/Tammany_and_Sons",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_casaba",
+      "label": "Star Citizen Wiki - Casaba Outlet",
+      "url": "https://starcitizen.tools/Casaba_Outlet",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_garrity",
+      "label": "Star Citizen Wiki - Garrity Defense",
+      "url": "https://starcitizen.tools/Garrity_Defense",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_wiki_shubin",
+      "label": "Star Citizen Wiki - Shubin Interstellar",
+      "url": "https://starcitizen.tools/Shubin_Interstellar",
+      "type": "community_wiki"
+    },
+    {
+      "id": "src_sc_craft_tools_hub",
+      "label": "SC-Craft.Tools community hub post",
+      "url": "https://robertsspaceindustries.com/community-hub/post/sc-craft-tools-the-complete-crafting-database-XXVPC6JqS5s6K",
+      "type": "community_hub"
+    },
+    {
+      "id": "src_sc_craft_tools_site",
+      "label": "SC-Craft.Tools website",
+      "url": "https://sc-craft.tools/",
+      "type": "community_tool"
+    },
+    {
+      "id": "src_blueprint_finder_hub",
+      "label": "Blueprint Finder community hub post",
+      "url": "https://robertsspaceindustries.com/community-hub/post/blueprint-finder-8D4bVQ81926tB",
+      "type": "community_hub"
+    },
+    {
+      "id": "src_game_pyro_location",
+      "label": "Star Citizen Game - Pyro System Locations",
+      "url": "https://starcitizen.tools/Pyro",
+      "type": "game_data"
+    },
+    {
+      "id": "src_game_nyx_location",
+      "label": "Star Citizen Game - Nyx System (Planned)",
+      "url": "https://robertsspaceindustries.com/",
+      "type": "game_data"
+    },
+    {
+      "id": "src_game_pyro_location",
+      "label": "Star Citizen Game - Pyro System Locations",
+      "url": "https://starcitizen.tools/Pyro",
+      "type": "game_data"
+    },
+    {
+      "id": "src_game_nyx_location",
+      "label": "Star Citizen Game - Nyx System (Planned)",
+      "url": "https://robertsspaceindustries.com/",
+      "type": "game_data"
+    }
+  ],
+  "gameSystems": [
+    {
+      "id": "stanton",
+      "name": "Stanton"
+    },
+    {
+      "id": "pyro",
+      "name": "Pyro"
+    }
+  ],
+  "locations": [
+    {
+      "id": "area18",
+      "name": "Area18",
+      "systemId": "stanton",
+      "locationType": "city",
+      "parent": "ArcCorp"
+    },
+    {
+      "id": "new_babbage",
+      "name": "New Babbage",
+      "systemId": "stanton",
+      "locationType": "city",
+      "parent": "microTech"
+    },
+    {
+      "id": "lorville",
+      "name": "Lorville",
+      "systemId": "stanton",
+      "locationType": "city",
+      "parent": "Hurston"
+    },
+    {
+      "id": "seraphim_station",
+      "name": "Seraphim Station",
+      "systemId": "stanton",
+      "locationType": "station",
+      "parent": "Crusader"
+    },
+    {
+      "id": "everus_harbor",
+      "name": "Everus Harbor",
+      "systemId": "stanton",
+      "locationType": "station",
+      "parent": "Hurston"
+    },
+    {
+      "id": "baijini_point",
+      "name": "Baijini Point",
+      "systemId": "stanton",
+      "locationType": "station",
+      "parent": "ArcCorp"
+    },
+    {
+      "id": "port_tressler",
+      "name": "Port Tressler",
+      "systemId": "stanton",
+      "locationType": "station",
+      "parent": "microTech"
+    },
+    {
+      "id": "grimhex",
+      "name": "GrimHEX",
+      "systemId": "stanton",
+      "locationType": "station",
+      "parent": "Yela"
+    },
+    {
+      "id": "arc_l1",
+      "name": "ARC-L1 Wide Forest Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "arc_l2",
+      "name": "ARC-L2 Lively Pathway Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "arc_l3",
+      "name": "ARC-L3 Modern Express Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "arc_l5",
+      "name": "ARC-L5 Yellow Core Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "cru_l1",
+      "name": "CRU-L1 Ambitious Dream Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "cru_l4",
+      "name": "CRU-L4",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "cru_l5",
+      "name": "CRU-L5 Beautiful Glen Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "hur_l1",
+      "name": "HUR-L1",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "hur_l2",
+      "name": "HUR-L2 Faithful Dream Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "hur_l4",
+      "name": "HUR-L4 Melodic Fields Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "hur_l5",
+      "name": "HUR-L5 High Course Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "mic_l1",
+      "name": "MIC-L1",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "mic_l3",
+      "name": "MIC-L3 Endless Odyssey Station",
+      "systemId": "stanton",
+      "locationType": "station"
+    },
+    {
+      "id": "aberdeen",
+      "name": "Aberdeen",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "Hurston"
+    },
+    {
+      "id": "arial",
+      "name": "Arial",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "Hurston"
+    },
+    {
+      "id": "daymar",
+      "name": "Daymar",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "Crusader"
+    },
+    {
+      "id": "wala",
+      "name": "Wala",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "ArcCorp"
+    },
+    {
+      "id": "lyria",
+      "name": "Lyria",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "ArcCorp"
+    },
+    {
+      "id": "magda",
+      "name": "Magda",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "Hurston"
+    },
+    {
+      "id": "ita",
+      "name": "Ita",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "Hurston"
+    },
+    {
+      "id": "microtech",
+      "name": "microTech",
+      "systemId": "stanton",
+      "locationType": "planet"
+    },
+    {
+      "id": "calliope",
+      "name": "Calliope",
+      "systemId": "stanton",
+      "locationType": "moon",
+      "parent": "microTech"
+    },
+    {
+      "id": "ignis",
+      "name": "Ignis",
+      "systemId": "pyro",
+      "locationType": "planet"
+    },
+    {
+      "id": "sand_caves",
+      "name": "Sand caves",
+      "systemId": "stanton",
+      "locationType": "poi_group",
+      "notes": "Used for Janalite spawns on select moons"
+    },
+    {
+      "id": "nyx",
+      "name": "Nyx",
+      "systemId": "nyx",
+      "locationType": "system",
+      "parent": null,
+      "liveSummary": "Nyx system in Star Citizen"
+    },
+    {
+      "id": "nyx-station-primary",
+      "name": "Nyx Primary Station",
+      "systemId": "nyx",
+      "locationType": "station",
+      "parent": "Nyx",
+      "liveSummary": "Main trading hub in Nyx system"
+    },
+    {
+      "id": "nyx",
+      "name": "Nyx",
+      "systemId": "nyx",
+      "locationType": "system",
+      "parent": null,
+      "liveSummary": "Nyx system in Star Citizen"
+    },
+    {
+      "id": "nyx-station-primary",
+      "name": "Nyx Primary Station",
+      "systemId": "nyx",
+      "locationType": "station",
+      "parent": "Nyx",
+      "liveSummary": "Main trading hub in Nyx system"
+    }
+  ],
+  "miningMethods": [
+    {
+      "id": "fps_mining",
+      "name": "FPS mining",
+      "description": "Hand mining with a Pyro RYT Multi-Tool and OreBit attachment.",
+      "requiresToolIds": [
+        "pyro_ryt_multi_tool",
+        "orebit_mining_attachment"
+      ],
+      "optionalToolIds": [
+        "macflex_rucksack_backpack"
+      ],
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_pyro_multitool",
+        "src_wiki_orebit",
+        "src_wiki_macflex_rucksack"
+      ]
+    },
+    {
+      "id": "roc_mining",
+      "name": "ROC mining",
+      "description": "Vehicle mining using the Greycat ROC.",
+      "requiresVehicleIds": [
+        "greycat_roc"
+      ],
+      "sourceRefs": [
+        "src_wiki_roc",
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "ship_mining",
+      "name": "Ship mining",
+      "description": "Mining with ship-mounted mining lasers on a Prospector, MOLE, or other mining-capable ship.",
+      "requiresVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_mining_ships"
+      ]
+    },
+    {
+      "id": "refining",
+      "name": "Refining",
+      "description": "Raw ore can be refined via refinery decks and work orders after extraction.",
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_official_patch_47_known_issues"
+      ]
+    }
+  ],
+  "toolsAndVehicles": [
+    {
+      "id": "pyro_ryt_multi_tool",
+      "name": "Pyro RYT Multi-Tool",
+      "kind": "tool",
+      "manufacturer": "Greycat Industrial",
+      "roles": [
+        "fps_mining",
+        "repair",
+        "tractor",
+        "medical",
+        "cutting"
+      ],
+      "attachments": [
+        "orebit_mining_attachment",
+        "oxytorch_cutter_attachment",
+        "truhold_tractor_attachment",
+        "lifeguard_medical_attachment",
+        "cambio_lite_srt_attachment"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_pyro_multitool"
+      ]
+    },
+    {
+      "id": "orebit_mining_attachment",
+      "name": "OreBit Mining Attachment",
+      "kind": "tool_attachment",
+      "manufacturer": "Greycat Industrial",
+      "roles": [
+        "fps_mining"
+      ],
+      "requiresParentToolId": "pyro_ryt_multi_tool",
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_orebit"
+      ]
+    },
+    {
+      "id": "macflex_rucksack_backpack",
+      "name": "MacFlex \"Rucksack\" Backpack",
+      "kind": "backpack",
+      "manufacturer": "Roberts Space Industries",
+      "roles": [
+        "ore_storage",
+        "expedition"
+      ],
+      "inventorySCU": 0.075,
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_macflex_rucksack"
+      ]
+    },
+    {
+      "id": "greycat_roc",
+      "name": "Greycat ROC",
+      "kind": "vehicle",
+      "manufacturer": "Greycat Industrial",
+      "roles": [
+        "roc_mining"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_roc"
+      ]
+    },
+    {
+      "id": "misc_prospector",
+      "name": "MISC Prospector",
+      "kind": "ship",
+      "manufacturer": "MISC",
+      "roles": [
+        "solo_ship_mining"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_mining_ships"
+      ]
+    },
+    {
+      "id": "argo_mole",
+      "name": "ARGO MOLE",
+      "kind": "ship",
+      "manufacturer": "ARGO Astronautics",
+      "roles": [
+        "multi_crew_ship_mining"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_mining_ships"
+      ]
+    },
+    {
+      "id": "rsi_arrastra",
+      "name": "RSI Arrastra",
+      "kind": "ship",
+      "manufacturer": "Roberts Space Industries",
+      "roles": [
+        "large_multicrew_mining",
+        "onboard_refining"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_mining_ships"
+      ]
+    }
+  ],
+  "stores": [
+    {
+      "id": "centermass_area18",
+      "name": "CenterMass",
+      "category": "weapons_and_armor",
+      "locationId": "area18",
+      "subLocation": "IO-North Tower, 2nd floor",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_weapons",
+        "shield_generators"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_centermass"
+      ]
+    },
+    {
+      "id": "centermass_new_babbage",
+      "name": "CenterMass",
+      "category": "weapons_and_armor",
+      "locationId": "new_babbage",
+      "subLocation": "The Plaza",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_weapons",
+        "shield_generators"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_centermass"
+      ]
+    },
+    {
+      "id": "cubby_blast_area18",
+      "name": "Cubby Blast",
+      "category": "weapons_and_armor",
+      "locationId": "area18",
+      "subLocation": "Zone 1",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "food_and_drink"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "live_fire_arc_l1",
+      "name": "Live Fire Weapons",
+      "category": "weapons",
+      "locationId": "arc_l1",
+      "products": [
+        "personal_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "legacy_needs_live_check",
+      "sourceRefs": [
+        "src_wiki_live_fire"
+      ]
+    },
+    {
+      "id": "live_fire_cru_l1",
+      "name": "Live Fire Weapons",
+      "category": "weapons",
+      "locationId": "cru_l1",
+      "products": [
+        "personal_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "legacy_needs_live_check",
+      "sourceRefs": [
+        "src_wiki_live_fire"
+      ]
+    },
+    {
+      "id": "live_fire_cru_l5",
+      "name": "Live Fire Weapons",
+      "category": "weapons",
+      "locationId": "cru_l5",
+      "products": [
+        "personal_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "legacy_needs_live_check",
+      "sourceRefs": [
+        "src_wiki_live_fire"
+      ]
+    },
+    {
+      "id": "live_fire_hur_l1",
+      "name": "Live Fire Weapons",
+      "category": "weapons",
+      "locationId": "hur_l1",
+      "products": [
+        "personal_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "legacy_needs_live_check",
+      "sourceRefs": [
+        "src_wiki_live_fire"
+      ]
+    },
+    {
+      "id": "tammany_lorville",
+      "name": "Tammany and Sons",
+      "category": "armor_tools_mining",
+      "locationId": "lorville",
+      "subLocation": "L19 Workers District",
+      "products": [
+        "clothing",
+        "flight_suits",
+        "armor",
+        "mining_equipment",
+        "multi_tools"
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_tammany"
+      ]
+    },
+    {
+      "id": "casaba_area18",
+      "name": "Casaba Outlet",
+      "category": "clothing",
+      "locationId": "area18",
+      "subLocation": "Zone 1",
+      "products": [
+        "clothing",
+        "undersuits",
+        "some_accessories"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_casaba"
+      ]
+    },
+    {
+      "id": "casaba_baijini",
+      "name": "Casaba Outlet",
+      "category": "clothing",
+      "locationId": "baijini_point",
+      "products": [
+        "clothing",
+        "undersuits",
+        "some_accessories"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_casaba"
+      ]
+    },
+    {
+      "id": "casaba_grimhex",
+      "name": "Casaba Outlet",
+      "category": "clothing",
+      "locationId": "grimhex",
+      "products": [
+        "clothing",
+        "undersuits",
+        "some_accessories"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_casaba"
+      ]
+    },
+    {
+      "id": "casaba_everus",
+      "name": "Casaba Outlet",
+      "category": "clothing",
+      "locationId": "everus_harbor",
+      "products": [
+        "clothing",
+        "undersuits",
+        "some_accessories"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_casaba"
+      ]
+    },
+    {
+      "id": "casaba_port_tressler",
+      "name": "Casaba Outlet",
+      "category": "clothing",
+      "locationId": "port_tressler",
+      "products": [
+        "clothing",
+        "undersuits",
+        "some_accessories"
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_casaba"
+      ]
+    },
+    {
+      "id": "mining_support_center",
+      "name": "Mining Support Center",
+      "category": "mining",
+      "locationId": "arc_l2",
+      "products": [
+        "mining_supplies",
+        "modules",
+        "consumables"
+      ],
+      "verificationStatus": "legacy_needs_live_check",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "garrity_seraphim_replacement",
+      "name": "Armor shop replacement for old Garrity Defense",
+      "category": "armor",
+      "locationId": "seraphim_station",
+      "products": [
+        "armor",
+        "flight_wear"
+      ],
+      "verificationStatus": "needs_manual_mapping",
+      "sourceRefs": [
+        "src_wiki_garrity"
+      ]
+    },
+    {
+      "id": "ruin_station_weapons",
+      "name": "Ruin Station Armory",
+      "category": "weapons_and_armor",
+      "locationId": "ruin-station",
+      "subLocation": "Black Market Trading Post",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "terminus_general_store",
+      "name": "Terminus Trading Hub",
+      "category": "weapons_and_armor",
+      "locationId": "terminus",
+      "subLocation": "Main Concourse",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_components",
+        "mining_tools"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "bloom_outpost",
+      "name": "Bloom Settlement Trading Post",
+      "category": "weapons_and_armor",
+      "locationId": "bloom",
+      "subLocation": "Trading Outpost",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "mining_tools"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "nyx_station_weapons",
+      "name": "Nyx Defense Systems",
+      "category": "weapons_and_armor",
+      "locationId": "nyx-station-primary",
+      "subLocation": "Weapons District",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_nyx_location"
+      ]
+    },
+    {
+      "id": "nyx_station_general",
+      "name": "Nyx Trading Exchange",
+      "category": "general_merchants",
+      "locationId": "nyx-station-primary",
+      "subLocation": "Commerce Hub",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_components",
+        "mining_tools",
+        "clothing"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_nyx_location"
+      ]
+    },
+    {
+      "id": "ruin_station_weapons",
+      "name": "Ruin Station Armory",
+      "category": "weapons_and_armor",
+      "locationId": "ruin-station",
+      "subLocation": "Black Market Trading Post",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "terminus_general_store",
+      "name": "Terminus Trading Hub",
+      "category": "weapons_and_armor",
+      "locationId": "terminus",
+      "subLocation": "Main Concourse",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_components",
+        "mining_tools"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "bloom_outpost",
+      "name": "Bloom Settlement Trading Post",
+      "category": "weapons_and_armor",
+      "locationId": "bloom",
+      "subLocation": "Trading Outpost",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "mining_tools"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_pyro_location"
+      ]
+    },
+    {
+      "id": "nyx_station_weapons",
+      "name": "Nyx Defense Systems",
+      "category": "weapons_and_armor",
+      "locationId": "nyx-station-primary",
+      "subLocation": "Weapons District",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_weapons",
+        "weapon_attachments"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_nyx_location"
+      ]
+    },
+    {
+      "id": "nyx_station_general",
+      "name": "Nyx Trading Exchange",
+      "category": "general_merchants",
+      "locationId": "nyx-station-primary",
+      "subLocation": "Commerce Hub",
+      "products": [
+        "personal_weapons",
+        "personal_armor",
+        "ship_components",
+        "mining_tools",
+        "clothing"
+      ],
+      "verificationStatus": "community_verified",
+      "sourceRefs": [
+        "src_game_nyx_location"
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "id": "hadanite",
+      "name": "Hadanite",
+      "category": "harvestable_mineral",
+      "miningMethods": [
+        "fps_mining",
+        "roc_mining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "pyro_ryt_multi_tool",
+        "orebit_mining_attachment",
+        "greycat_roc"
+      ],
+      "knownLocations": [
+        "aberdeen",
+        "arial",
+        "daymar",
+        "wala",
+        "lyria",
+        "magda",
+        "ignis"
+      ],
+      "locationNotes": "Can appear in small-scale deposits on surfaces and attached to asteroids; some nodes are hand-mineable while others need at least a size 0 laser.",
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_hadanite"
+      ]
+    },
+    {
+      "id": "aphorite",
+      "name": "Aphorite",
+      "category": "harvestable_mineral",
+      "miningMethods": [
+        "fps_mining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "pyro_ryt_multi_tool",
+        "orebit_mining_attachment"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Harvest locations were not populated on the referenced wiki page; treat this as a known harvestable gem with location data still to fill in.",
+      "verificationStatus": "partial",
+      "sourceRefs": [
+        "src_wiki_aphorite"
+      ]
+    },
+    {
+      "id": "dolivine",
+      "name": "Dolivine",
+      "category": "harvestable_mineral",
+      "miningMethods": [
+        "fps_mining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "pyro_ryt_multi_tool",
+        "orebit_mining_attachment"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Known as a green mineable gemstone; exact current spawn mapping still needs patch-specific fill.",
+      "verificationStatus": "partial",
+      "sourceRefs": [
+        "src_wiki_dolivine"
+      ]
+    },
+    {
+      "id": "janalite",
+      "name": "Janalite",
+      "category": "rare_harvestable_mineral",
+      "miningMethods": [
+        "fps_mining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "pyro_ryt_multi_tool",
+        "orebit_mining_attachment"
+      ],
+      "knownLocations": [
+        "daymar",
+        "magda",
+        "ita"
+      ],
+      "locationNotes": "Listed specifically in sand caves on Daymar, Magda, and Ita.",
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_janalite"
+      ]
+    },
+    {
+      "id": "quantanium_raw",
+      "name": "Quantanium (Raw)",
+      "category": "volatile_ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mine from asteroids or ore deposits, then rush it to a refinery before it degrades and explodes.",
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_wiki_quantanium_raw",
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "agricium",
+      "name": "Agricium",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [
+        "daymar",
+        "lyria",
+        "calliope",
+        "microtech"
+      ],
+      "locationNotes": "General mining material found on planets, moons, and asteroids; specific hot spots vary by patch and community route mapping.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining",
+        "src_wiki_shubin"
+      ]
+    },
+    {
+      "id": "bexalite",
+      "name": "Bexalite",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Valuable mineral commodity refined from raw ore; current exact route mapping should be supplemented from a live mining route database.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "borase",
+      "name": "Borase",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Refined form of borase ore.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "laranite",
+      "name": "Laranite",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Gemstone commodity obtained through mining/refining loops; patch-accurate deposit mapping still needed.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "taranite",
+      "name": "Taranite",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Commodity refined from raw taranite.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Commonly mined ore; exact route mapping should be added later.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "diamond",
+      "name": "Diamond",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in the mining overview.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "titanium",
+      "name": "Titanium",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in the mining overview.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "tungsten",
+      "name": "Tungsten",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in the mining overview.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "corundum",
+      "name": "Corundum",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in the mining overview.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in the mining overview.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "beryl",
+      "name": "Beryl",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in current mining commodity references.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "hephaestanite",
+      "name": "Hephaestanite",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in current mining commodity references.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "iron",
+      "name": "Iron",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in current mining commodity references.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "quartz",
+      "name": "Quartz",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in current mining commodity references.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "aluminum",
+      "name": "Aluminum",
+      "category": "ship_mining_ore",
+      "miningMethods": [
+        "ship_mining",
+        "refining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Mineable material listed in current mining commodity references.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    },
+    {
+      "id": "inert_material",
+      "name": "Inert Material",
+      "category": "mining_byproduct",
+      "miningMethods": [
+        "ship_mining"
+      ],
+      "requiredToolOrVehicleIds": [
+        "misc_prospector",
+        "argo_mole",
+        "rsi_arrastra"
+      ],
+      "knownLocations": [],
+      "locationNotes": "Common byproduct in mixed rock compositions.",
+      "verificationStatus": "general_only",
+      "sourceRefs": [
+        "src_wiki_mining"
+      ]
+    }
+  ],
+  "armor": [
+    {
+      "id": "macflex_set",
+      "name": "MacFlex",
+      "class": "light",
+      "manufacturer": "Roberts Space Industries",
+      "temperatureC": {
+        "min": -37,
+        "max": 67
+      },
+      "cargoProfile": "good_for_tools_and_mining_when_paired_with_rucksack",
+      "recommendedFor": [
+        "fps_mining",
+        "general_surface_loot_runs"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "tammany_lorville"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "type": "loot",
+          "confidence": "low"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_macflex",
+        "src_wiki_tammany"
+      ]
+    },
+    {
+      "id": "adp_set",
+      "name": "ADP",
+      "class": "heavy",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -75,
+        "max": 105
+      },
+      "recommendedFor": [
+        "combat",
+        "bunkers",
+        "high_protection_loadouts"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_personal_armor",
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "adp_mk4_set",
+      "name": "ADP-mk4",
+      "class": "heavy",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -70,
+        "max": 100
+      },
+      "recommendedFor": [
+        "combat",
+        "marine_style_loadouts",
+        "max_protection"
+      ],
+      "inventoryMicroSCU": 20000,
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_adp_mk4",
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "orc_mkv_set",
+      "name": "ORC-mkV",
+      "class": "medium",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -55,
+        "max": 85
+      },
+      "recommendedFor": [
+        "balanced_combat",
+        "general_fps"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_personal_armor",
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "orc_mkx_set",
+      "name": "ORC-mkX",
+      "class": "medium",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -61,
+        "max": 91
+      },
+      "recommendedFor": [
+        "balanced_combat",
+        "cold_environments"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_personal_armor",
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "pab1_set",
+      "name": "PAB-1",
+      "class": "light",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -40,
+        "max": 70
+      },
+      "recommendedFor": [
+        "light_fps",
+        "mobility"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_personal_armor",
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "fbl8a_set",
+      "name": "FBL-8a",
+      "class": "light",
+      "manufacturer": "Clark Defense Systems",
+      "temperatureC": {
+        "min": -32,
+        "max": 62
+      },
+      "recommendedFor": [
+        "light_fps",
+        "starter_combat"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_cubby_blast"
+      ]
+    },
+    {
+      "id": "field_recon_suit",
+      "name": "Field Recon Suit",
+      "class": "light",
+      "manufacturer": "unknown",
+      "recommendedFor": [
+        "recon",
+        "light_surface_runs"
+      ],
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "cubby_blast_area18"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "partially_verified",
+      "sourceRefs": [
+        "src_wiki_cubby_blast"
+      ]
+    }
+  ],
+  "weapons": [
+    {
+      "id": "arclight_pistol",
+      "name": "Arclight Energy Pistol",
+      "class": "sidearm",
+      "damageType": "energy",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage",
+            "cubby_blast_area18",
+            "live_fire_arc_l1"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_wiki_cubby_blast",
+        "src_wiki_live_fire",
+        "src_wiki_blueprint",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "c54_smg",
+      "name": "C54 SMG",
+      "class": "smg",
+      "damageType": "ballistic_or_energy_variant_unknown",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage",
+            "cubby_blast_area18",
+            "live_fire_arc_l1"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_wiki_cubby_blast",
+        "src_wiki_live_fire",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "p4_ar_rifle",
+      "name": "P4-AR Rifle",
+      "class": "assault_rifle",
+      "damageType": "ballistic",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage",
+            "live_fire_arc_l1",
+            "live_fire_cru_l1"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_wiki_live_fire",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "p8_sc_smg",
+      "name": "P8-SC SMG",
+      "class": "smg",
+      "damageType": "ballistic",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage",
+            "live_fire_arc_l1"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_wiki_live_fire",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "fs9_lmg",
+      "name": "FS-9 LMG",
+      "class": "lmg",
+      "damageType": "ballistic",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "high"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_sc_craft_tools_hub",
+        "src_blueprint_finder_hub"
+      ]
+    },
+    {
+      "id": "gallant_rifle",
+      "name": "Gallant Rifle",
+      "class": "assault_rifle",
+      "damageType": "energy",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "custodian_smg",
+      "name": "Custodian SMG",
+      "class": "smg",
+      "damageType": "energy",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_sc_craft_tools_hub"
+      ]
+    },
+    {
+      "id": "s71_rifle",
+      "name": "S71 Rifle",
+      "class": "battle_rifle",
+      "damageType": "ballistic",
+      "obtainMethods": [
+        {
+          "type": "vendor",
+          "storeIds": [
+            "centermass_area18",
+            "centermass_new_babbage",
+            "cubby_blast_area18"
+          ],
+          "confidence": "low"
+        },
+        {
+          "type": "loot",
+          "confidence": "medium"
+        },
+        {
+          "type": "craftable",
+          "confidence": "medium"
+        }
+      ],
+      "verificationStatus": "general_mapping_only",
+      "sourceRefs": [
+        "src_wiki_centermass",
+        "src_wiki_cubby_blast",
+        "src_sc_craft_tools_hub"
+      ]
+    }
+  ],
+  "crafting": {
+    "overview": {
+      "requiresBlueprints": true,
+      "requiresFabricator": true,
+      "materialQualityAffectsOutput": true,
+      "blueprintAcquisitionMethods": [
+        "purchase",
+        "mission_reward",
+        "reputation_reward",
+        "loot_crate"
+      ],
+      "notes": [
+        "Crafting in 4.7 is built around blueprints and item fabricators.",
+        "Blueprints are permanently added to the player's inventory once acquired.",
+        "Quality of materials affects crafted outcome."
+      ],
+      "verificationStatus": "verified",
+      "sourceRefs": [
+        "src_official_crafting_guide",
+        "src_wiki_blueprint"
+      ]
+    },
+    "blueprints": [
+      {
+        "id": "bp_weapon_generic_t1",
+        "name": "Generic Weapon Blueprint T1",
+        "craftsCategory": "weapon",
+        "acquisitionHints": [
+          "mission_reward",
+          "loot_crate",
+          "vendor_purchase"
+        ],
+        "fabricatorType": "item_fabricator",
+        "verificationStatus": "schema_placeholder",
+        "sourceRefs": [
+          "src_wiki_blueprint",
+          "src_sc_craft_tools_hub"
+        ]
+      },
+      {
+        "id": "bp_armor_light_generic_t1",
+        "name": "Generic Light Armor Blueprint T1",
+        "craftsCategory": "armor",
+        "acquisitionHints": [
+          "mission_reward",
+          "loot_crate",
+          "vendor_purchase"
+        ],
+        "fabricatorType": "item_fabricator",
+        "verificationStatus": "schema_placeholder",
+        "sourceRefs": [
+          "src_wiki_blueprint",
+          "src_sc_craft_tools_hub"
+        ]
+      },
+      {
+        "id": "bp_magazine_generic_t1",
+        "name": "Generic Magazine Blueprint T1",
+        "craftsCategory": "magazine",
+        "acquisitionHints": [
+          "loot_crate",
+          "vendor_purchase"
+        ],
+        "fabricatorType": "item_fabricator",
+        "verificationStatus": "schema_placeholder",
+        "sourceRefs": [
+          "src_sc_craft_tools_hub"
+        ]
+      }
+    ],
+    "recipes": [
+      {
+        "id": "recipe_schema_weapon_example",
+        "blueprintId": "bp_weapon_generic_t1",
+        "outputItemId": "p4_ar_rifle",
+        "ingredients": [
+          {
+            "resourceId": "iron",
+            "amount": 1,
+            "unit": "placeholder"
+          },
+          {
+            "resourceId": "copper",
+            "amount": 1,
+            "unit": "placeholder"
+          },
+          {
+            "resourceId": "titanium",
+            "amount": 1,
+            "unit": "placeholder"
+          }
+        ],
+        "qualityInputsMatter": true,
+        "verificationStatus": "placeholder_not_live_verified",
+        "sourceRefs": [
+          "src_sc_craft_tools_hub"
+        ]
+      },
+      {
+        "id": "recipe_schema_armor_example",
+        "blueprintId": "bp_armor_light_generic_t1",
+        "outputItemId": "macflex_set",
+        "ingredients": [
+          {
+            "resourceId": "aluminum",
+            "amount": 1,
+            "unit": "placeholder"
+          },
+          {
+            "resourceId": "iron",
+            "amount": 1,
+            "unit": "placeholder"
+          }
+        ],
+        "qualityInputsMatter": true,
+        "verificationStatus": "placeholder_not_live_verified",
+        "sourceRefs": [
+          "src_sc_craft_tools_hub"
+        ]
+      }
+    ]
+  },
+  "lootAndMissionHooks": {
+    "notes": [
+      "Community tooling now tracks blueprint and gear drops by mission, faction, location, and lawfulness.",
+      "This seed file includes schema hooks but not a full live drop table.",
+      "Recommended next import sources are SC-Craft.Tools for blueprint ingredients and the community Blueprint Finder sheet for loot/drop mappings."
+    ],
+    "suggestedFutureSources": [
+      "src_sc_craft_tools_site",
+      "src_blueprint_finder_hub"
+    ]
+  },
+  "uiPresets": {
+    "featuredResourceIds": [
+      "hadanite",
+      "janalite",
+      "quantanium_raw",
+      "agricium",
+      "bexalite",
+      "taranite"
+    ],
+    "featuredArmorIds": [
+      "macflex_set",
+      "adp_mk4_set",
+      "orc_mkx_set"
+    ],
+    "featuredWeaponIds": [
+      "p4_ar_rifle",
+      "fs9_lmg",
+      "gallant_rifle"
+    ],
+    "featuredStoreIds": [
+      "cubby_blast_area18",
+      "centermass_area18",
+      "centermass_new_babbage",
+      "tammany_lorville"
+    ]
+  }
+}
