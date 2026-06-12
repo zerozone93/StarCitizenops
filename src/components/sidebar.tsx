@@ -25,7 +25,7 @@ const secondaryNavItems = [
 ];
 
 const helpItems = [
-  { href: "/USER_GUIDE.md", label: "📖 User Guide", external: true },
+  { href: "/user-guide", label: "📖 User Guide" },
 ];
 
 export function Sidebar() {
@@ -39,7 +39,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col rounded-3xl border border-orange-300/20 bg-slate-950/75 p-4 sm:p-5">
+    <aside className="flex w-full shrink-0 flex-col rounded-3xl border border-orange-300/20 bg-slate-950/75 p-4 sm:p-5 lg:fixed lg:bottom-5 lg:left-6 lg:top-5 lg:w-72 lg:overflow-y-auto">
       <Link href="/dashboard" className="mb-5 block rounded-2xl border border-orange-300/25 bg-gradient-to-br from-orange-500/20 via-orange-400/10 to-cyan-400/10 p-4">
         <p className="text-[11px] uppercase tracking-[0.3em] text-orange-100/90">StarCitizenOps</p>
         <h1 className="mt-2 text-xl font-semibold text-orange-50 sm:text-2xl">Command Deck</h1>
@@ -87,15 +87,13 @@ export function Sidebar() {
         <p className="px-2 py-1.5 text-xs uppercase tracking-[0.2em] text-slate-300">Help</p>
         <nav className="mt-2 grid gap-1.5">
           {helpItems.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
-              target={item.external ? "_blank" : undefined}
-              rel={item.external ? "noopener noreferrer" : undefined}
               className="block rounded-xl border border-transparent px-3 py-2.5 text-sm text-slate-200 hover:border-cyan-300/30 hover:bg-cyan-300/10 transition"
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </nav>
       </div>
