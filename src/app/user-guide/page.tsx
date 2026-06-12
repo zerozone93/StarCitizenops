@@ -133,6 +133,55 @@ const quickStart = [
   "Use Social and Notifications to coordinate execution.",
 ];
 
+const detailedWorkflows = [
+  {
+    title: "How To Add Ships And Vehicles",
+    href: "/fleet/add",
+    summary: "Use the fleet form to register ships or ground vehicles, then keep status and quantities current.",
+    steps: [
+      "Open Fleet, then select Add Asset.",
+      "Pick Asset Type: Ship or Ground Vehicle.",
+      "Set Status (for example AVAILABLE, PLEDGED, or IN_GAME_PURCHASED).",
+      "Choose from the built-in ship/vehicle picker, or enable Custom asset entry.",
+      "Confirm name, manufacturer, role, size, and quantity.",
+      "Add optional notes and submit with Add to Fleet.",
+      "To update or remove later, open Fleet and use the asset edit actions.",
+    ],
+  },
+  {
+    title: "How To Add Or Remove Privileges",
+    href: "/organizations/my",
+    summary: "Organization leadership can change member role levels and toggle app privileges by action.",
+    steps: [
+      "Open your organization and go to Member Privileges.",
+      "Select a member from the list.",
+      "Change their role (OWNER, OFFICER, COMMANDER, TEAM_LEADER, MEMBER, GUEST) when needed.",
+      "Toggle app privileges such as createOperation, editOperation, assignRoles, and manageChannels.",
+      "Save changes and verify access by checking the member row updates.",
+      "To remove access entirely, use Remove Member from the same manager.",
+      "Best practice: keep OWNER/OFFICER limited and grant extra privileges only where required.",
+    ],
+  },
+  {
+    title: "How AI Planner Works",
+    href: "/ai-planner",
+    summary: "AI Planner generates three structured operation options from your input, then pre-fills the operation form.",
+    steps: [
+      "Fill Organization Name and Crew Size.",
+      "Set Planned Start Date & Time to prefill generated operation start time.",
+      "Choose Mission Focus (or leave blank to let AI choose).",
+      "Write a Mission Brief with goals, target contracts, locations, and constraints.",
+      "Include your available fleet and ground assets in the brief if you want AI to plan around them.",
+      "Include mission names or in-game contract context in the brief for better contract-aligned output.",
+      "Generate plans, review all three options, then click Use This Plan to open Operations/New with fields prefilled.",
+    ],
+    notes: [
+      "AI Planner does not auto-read your live fleet roster by default; include asset availability in your brief for accurate outputs.",
+      "The generated plan includes threat level, required ships/vehicles/personnel, mission phases, comms, ROE, rally, extraction, and contingencies.",
+    ],
+  },
+];
+
 export default function UserGuidePage() {
   return (
     <AppShell title="User Guide" subtitle="Simple overview of each app section">
@@ -152,6 +201,35 @@ export default function UserGuidePage() {
             <li key={step}>{step}</li>
           ))}
         </ol>
+      </section>
+
+      <section className="grid gap-4">
+        {detailedWorkflows.map((workflow) => (
+          <article key={workflow.title} className="rounded-2xl border border-emerald-300/20 bg-slate-900/55 p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h4 className="text-lg font-semibold text-emerald-100">{workflow.title}</h4>
+              <Link
+                href={workflow.href}
+                className="inline-flex w-fit rounded-lg border border-emerald-300/40 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-100 transition hover:bg-emerald-300/20"
+              >
+                Open workflow
+              </Link>
+            </div>
+            <p className="mt-2 text-sm text-slate-300">{workflow.summary}</p>
+            <ol className="mt-3 ml-5 list-decimal space-y-1.5 text-sm text-slate-300">
+              {workflow.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+            {workflow.notes?.length ? (
+              <ul className="mt-3 ml-5 list-disc space-y-1.5 text-xs text-slate-400">
+                {workflow.notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            ) : null}
+          </article>
+        ))}
       </section>
 
       <section className="grid gap-4">

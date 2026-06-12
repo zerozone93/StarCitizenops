@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
   },
   // Compress responses
   compress: true,
+  async redirects() {
+    return [
+      {
+        source: "/USER_GUIDE.md",
+        destination: "/user-guide",
+        permanent: true,
+      },
+    ];
+  },
   // Let Next.js manage static asset cache headers to avoid dev/runtime conflicts.
 };
 
