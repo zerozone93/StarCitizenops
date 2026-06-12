@@ -26,6 +26,8 @@ Pass criteria:
 - All required environment variables exist in Vercel Production
 - NEXTAUTH_SECRET is a strong generated secret
 - NEXTAUTH_URL matches the production domain
+- DATABASE_URL uses Neon pooled connection
+- DIRECT_DATABASE_URL uses Neon direct (non-pooled) connection
 - No real secrets are present in repository files
 
 Use .env.example as the only template source.
@@ -36,7 +38,7 @@ Owner: Engineering
 
 Pass criteria:
 - Neon production project and DB created
-- Production DATABASE_URL set in Vercel
+- Production DATABASE_URL and DIRECT_DATABASE_URL set in Vercel
 - DB connectivity test succeeds
 - Destructive seed/reset flows are blocked for production by default
 
@@ -100,3 +102,24 @@ Pass criteria:
 - All above sections marked complete
 - Release tag created
 - Monitoring and alerting enabled
+
+## 10. Neon credential rotation runbook
+
+Owner: Engineering
+
+When to run:
+- After any credential exposure incident
+- At regular security rotation intervals
+
+Steps:
+1. Rotate the Neon database user password in Neon SQL editor or `psql` using `ALTER USER ... WITH PASSWORD ...`.
+2. Update Vercel Production environment variables:
+  - `DATABASE_URL` (Neon pooled URL)
+  - `DIRECT_DATABASE_URL` (Neon direct URL)
+3. Run production migration validation:
+  - `npx prisma migrate deploy`
+4. Redeploy production:
+  - `npx vercel deploy --prod --yes`
+5. Confirm health:
+  - Domain returns HTTP 200
+  - App can connect to database without auth or connection errors

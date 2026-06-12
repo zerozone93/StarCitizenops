@@ -6,6 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 enum SiteRole {
@@ -263,6 +264,8 @@ model User {
   // Discord account link
   discordUserId      String?                @unique
   discordUsername    String?
+  termsAcceptedAt    DateTime?
+  termsAcceptedVersion String?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   accounts           Account[]
