@@ -1329,6 +1329,7 @@ export function ChatWorkspace({
                   subtitle={getConversationMeta(selectedConversation)}
                   placeholder={selectedConversation.isChannel ? "Message this channel" : "Message this user"}
                   emptyMessage="No messages yet. Kick off the conversation."
+                  organizationId={selectedConversation.organization?.id ?? null}
                 />
               </div>
             )}

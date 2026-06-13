@@ -2,11 +2,25 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+type OrgMembership = {
+  orgTag: string;
+  role: string;
+};
+
+type SenderBadge = {
+  key: string;
+  label: string;
+  tone: "cyan" | "amber" | "emerald" | "rose";
+  hint: string;
+};
+
 type Sender = {
   id: string;
   name: string | null;
   email: string | null;
   starCitizenHandle: string | null;
+  orgMemberships?: OrgMembership[];
+  badges?: SenderBadge[];
 };
 
 type ChatMessage = {
@@ -29,28 +43,93 @@ type LiveChatProps = {
   currentUserId: string;
   initialMessages: ChatMessage[];
   members?: ChatMember[];
+  title?: string;
+  subtitle?: string;
+  placeholder?: string;
+  emptyMessage?: string;
+  organizationId?: string | null;
 };
 
-const REACTIONS = ["🔥", "🫡", "✅", "👀", "💬"];
+const EMOJI_QUICK = ["🔥", "🫡", "✅", "👀", "💬", "❤️", "👍", "😂", "🚀", "⚡"];
+const EMOJI_PICKER = [
+  "🔥","🫡","✅","👀","💬","❤️","👍","👎","😂","😮","😢","😡","🚀","⚡","💥","🎯","📡",
+  "🌌","🛸","💎","🏆","⭐","🎉","🤝","🫶","👏","💪","🙏","⚔️","🛡️","🎖️",
+];
 
 function renderBody(body: string) {
-  // Split on @handle tokens and highlight them
   const parts = body.split(/(@\w+)/g);
   return parts.map((part, i) =>
     /^@\w+$/.test(part) ? (
-      <span key={i} className="font-semibold text-cyan-300">{part}</span>
+      <span key={i} className="font-semibold text-sky-300">{part}</span>
     ) : (
       part
     )
   );
 }
 
-export function LiveChat({ conversationId, currentUserId, initialMessages, members = [] }: LiveChatProps) {
+function getSenderDisplay(sender: Sender) {
+  return sender.starCitizenHandle || sender.name || sender.email || "Operator";
+}
+
+function getSenderInitials(label: string) {
+  return (
+    label.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase() || "").join("") || "OP"
+  );
+}
+
+function EmojiPopover({ onPick, onClose }: { onPick: (e: string) => void; onClose: () => void }) {
+  return (
+    <div className="absolute bottom-full right-0 z-30 mb-1 w-64 rounded-lg border border-slate-700 bg-[#1e1f22] p-2 shadow-xl">
+      <div className="grid grid-cols-8 gap-0.5">
+        {EMOJI_PICKER.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); onPick(emoji); onClose(); }}
+            className="rounded px-0.5 py-0.5 text-base hover:bg-slate-700"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+const ROLE_COLORS: Record<string, string> = {
+  OWNER: "text-rose-300 border-rose-500/30 bg-rose-500/10",
+  OFFICER: "text-orange-300 border-orange-500/30 bg-orange-500/10",
+  COMMANDER: "text-blue-300 border-blue-500/30 bg-blue-500/10",
+  TEAM_LEADER: "text-cyan-300 border-cyan-500/30 bg-cyan-500/10",
+  MEMBER: "text-slate-300 border-slate-500/30 bg-slate-700/30",
+  GUEST: "text-gray-400 border-gray-600/30 bg-gray-700/20",
+};
+
+const BADGE_TONE_STYLES: Record<string, string> = {
+  cyan: "border-sky-300/35 bg-sky-400/15 text-sky-100",
+  amber: "border-amber-300/35 bg-amber-400/15 text-amber-100",
+  emerald: "border-emerald-300/35 bg-emerald-400/15 text-emerald-100",
+  rose: "border-rose-300/35 bg-rose-400/15 text-rose-100",
+};
+
+export function LiveChat({
+  conversationId,
+  currentUserId,
+  initialMessages,
+  members = [],
+  title = "Live Command Chat",
+  subtitle,
+  placeholder = "Post live update — type @ to mention someone",
+  emptyMessage = "Conversation is quiet. Start the thread.",
+  organizationId,
+}: LiveChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(0);
+  const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Filtered mention suggestions
@@ -156,53 +235,105 @@ export function LiveChat({ conversationId, currentUserId, initialMessages, membe
   }, [messages]);
 
   return (
-    <section className="rounded-xl border border-cyan-500/20 bg-slate-900/50 p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold text-cyan-100">Live Command Chat</h3>
-        <p className="text-xs text-slate-400">{lastUpdated}</p>
+    <section className="rounded-xl border border-slate-700 bg-[#2b2d31] p-3">
+      <div className="mb-2 flex items-center justify-between gap-3 border-b border-slate-700/70 pb-2">
+        <div className="min-w-0">
+          <h3 className="truncate text-base font-semibold text-slate-100">{title}</h3>
+          {subtitle ? <p className="mt-0.5 truncate text-xs text-slate-400">{subtitle}</p> : null}
+        </div>
+        <p className="shrink-0 text-[11px] text-slate-500">{lastUpdated}</p>
       </div>
 
-      <div className="max-h-[420px] space-y-2 overflow-auto rounded-lg border border-cyan-500/20 bg-slate-950/60 p-3">
+      <div className="max-h-[520px] space-y-1 overflow-auto rounded-lg bg-[#313338] p-2">
         {messages.map((message) => {
           const mine = message.sender.id === currentUserId;
+          const senderLabel =
+            message.sender.starCitizenHandle || message.sender.name || message.sender.email || "Operator";
+          const relevantOrg = message.sender.orgMemberships?.find(
+            (m) => organizationId ? m.orgTag === message.sender.orgMemberships?.find((o) => o.orgTag)?.orgTag : false
+          ) || message.sender.orgMemberships?.[0];
+          const senderBadges = message.sender.badges ?? [];
           return (
-            <article key={message.id} className={`rounded-lg border p-3 ${mine ? "border-cyan-500/40 bg-cyan-500/10" : "border-slate-700 bg-slate-900/70"}`}>
-              <p className="text-xs text-slate-400">
-                {message.sender.starCitizenHandle || message.sender.name || message.sender.email || "Operator"} · {new Date(message.createdAt).toLocaleTimeString()}
-              </p>
-              <p className="mt-1 text-sm text-slate-200">{renderBody(message.body)}</p>
+            <article
+              key={message.id}
+              className={`rounded-md px-2 py-2 transition ${mine ? "bg-slate-700/50" : "hover:bg-slate-800/65"}`}
+            >
+              <div className="flex gap-3">
+                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-700 text-[11px] font-semibold text-slate-100">
+                  {(senderLabel[0] || "O").toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-sm font-semibold text-slate-100">{senderLabel}</span>
+                    {relevantOrg ? (
+                      <span className={`rounded border px-1 py-0.5 text-[10px] font-bold uppercase tracking-wide ${ROLE_COLORS[relevantOrg.role] ?? ROLE_COLORS.MEMBER}`}>
+                        [{relevantOrg.orgTag}] {relevantOrg.role.replace("_", " ")}
+                      </span>
+                    ) : null}
+                    {senderBadges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        title={badge.hint}
+                        className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.15em] ${BADGE_TONE_STYLES[badge.tone] ?? BADGE_TONE_STYLES.cyan}`}
+                      >
+                        {badge.label}
+                      </span>
+                    ))}
+                    <span className="text-[11px] text-slate-500">{new Date(message.createdAt).toLocaleString()}</span>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-slate-200">{renderBody(message.body)}</p>
 
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {REACTIONS.map((emoji) => {
-                  const count = message.reactionSummary[emoji] || 0;
-                  const active = message.myReactions.includes(emoji);
-                  return (
-                    <button
-                      key={`${message.id}-${emoji}`}
-                      type="button"
-                      onClick={() => void toggleReaction(message.id, emoji)}
-                      className={`rounded-md border px-2 py-1 text-xs ${active ? "border-cyan-300 bg-cyan-400/20 text-cyan-100" : "border-slate-600 bg-slate-800/80 text-slate-200"}`}
-                    >
-                      {emoji} {count ? count : ""}
-                    </button>
-                  );
-                })}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {/* Active reactions */}
+                    {[...new Set([...EMOJI_QUICK, ...Object.keys(message.reactionSummary)])].map((emoji) => {
+                      const count = message.reactionSummary[emoji] || 0;
+                      const active = message.myReactions.includes(emoji);
+                      if (!count && !active) return null;
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => void toggleReaction(message.id, emoji)}
+                          className={`rounded-md border px-1.5 py-0.5 text-xs transition ${active ? "border-sky-400/60 bg-sky-500/20 text-sky-100" : "border-slate-600 bg-slate-800/70 text-slate-300 hover:border-slate-500"}`}
+                        >
+                          {emoji} {count}
+                        </button>
+                      );
+                    })}
+                    {/* + picker */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setPickerOpenFor((cur) => cur === message.id ? null : message.id)}
+                        className="rounded-md border border-slate-700 bg-slate-800/60 px-1.5 py-0.5 text-xs text-slate-400 hover:text-slate-200"
+                      >
+                        +
+                      </button>
+                      {pickerOpenFor === message.id ? (
+                        <EmojiPopover
+                          onPick={(emoji) => void toggleReaction(message.id, emoji)}
+                          onClose={() => setPickerOpenFor(null)}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               </div>
             </article>
           );
         })}
-        {!messages.length ? <p className="text-sm text-slate-400">Conversation is quiet. Start the thread.</p> : null}
+        {!messages.length ? <p className="p-4 text-sm text-slate-400">{emptyMessage}</p> : null}
       </div>
 
-      <div className="relative mt-3 flex gap-2">
+      <div className="relative mt-3 flex gap-2 rounded-lg bg-[#383a40] p-2">
         {mentionSuggestions.length > 0 && (
-          <ul className="absolute bottom-full left-0 z-20 mb-1 w-60 rounded-lg border border-cyan-500/30 bg-slate-900 py-1 shadow-xl">
+          <ul className="absolute bottom-full left-0 z-20 mb-1 w-60 rounded-lg border border-slate-700 bg-[#1e1f22] py-1 shadow-xl">
             {mentionSuggestions.map((member) => (
               <li key={member.id}>
                 <button
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); insertMention(member.starCitizenHandle || member.name || member.id); }}
-                  className="w-full px-3 py-1.5 text-left text-sm text-cyan-100 hover:bg-cyan-500/20"
+                  className="w-full px-3 py-1.5 text-left text-sm text-slate-100 hover:bg-slate-700"
                 >
                   <span className="font-medium">@{member.starCitizenHandle || member.name || "unknown"}</span>
                   {member.name && member.starCitizenHandle ? (
@@ -224,15 +355,15 @@ export function LiveChat({ conversationId, currentUserId, initialMessages, membe
               void submitMessage();
             }
           }}
-          className="w-full rounded-md border border-cyan-500/30 bg-slate-950 p-2 text-sm"
-          placeholder="Post live update — type @ to mention someone"
+          className="w-full rounded-md border border-slate-600 bg-[#1f2127] px-3 py-2 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-400"
+          placeholder={placeholder}
           maxLength={2000}
         />
         <button
           type="button"
           onClick={() => void submitMessage()}
           disabled={sending}
-          className="rounded-md bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {sending ? "Sending" : "Send"}
         </button>
