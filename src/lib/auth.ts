@@ -99,6 +99,17 @@ export const authOptions: NextAuthOptions = {
             },
           });
         } catch {
+          if (demoPasswordValid) {
+            return {
+              id: demoUser.id,
+              name: demoUser.name,
+              email: parsed.data.email,
+              image: null,
+              siteRole: demoUser.siteRole,
+              twoFactorPending: false,
+              twoFactorMethod: null,
+            };
+          }
           return null;
         }
 
