@@ -12,6 +12,44 @@ type ShipCatalogResponse = {
   }>;
 };
 
+const REQUIRED_SHIPS = [
+  {
+    name: "Ironclad",
+    manufacturer: "Drake",
+    role: "CARGO",
+    size: "LARGE",
+  },
+  {
+    name: "Ironclad Assault",
+    manufacturer: "Drake",
+    role: "GUNSHIP",
+    size: "LARGE",
+  },
+] as const;
+
+function withRequiredShips(
+  ships: Array<{ name: string; manufacturer: string; role: string; size: string }>
+) {
+  const map = new Map(ships.map((ship) => [ship.name.toLowerCase(), ship]));
+  for (const required of REQUIRED_SHIPS) {
+    if (!map.has(required.name.toLowerCase())) {
+      map.set(required.name.toLowerCase(), required);
+    }
+  }
+
+  const merged = Array.from(map.values());
+  const pinned = merged.filter((ship) => REQUIRED_SHIPS.some((required) => required.name === ship.name));
+  const others = merged
+    .filter((ship) => !REQUIRED_SHIPS.some((required) => required.name === ship.name))
+    .sort((a, b) => {
+      const m = a.manufacturer.localeCompare(b.manufacturer);
+      if (m !== 0) return m;
+      return a.name.localeCompare(b.name);
+    });
+
+  return [...pinned, ...others];
+}
+
 export function ShipDropdown({
   onSelect,
   name = "shipPreset",
@@ -24,7 +62,7 @@ export function ShipDropdown({
   }) => void;
   name?: string;
 }) {
-  const [ships, setShips] = useState(STAR_CITIZEN_SHIPS);
+  const [ships, setShips] = useState(withRequiredShips(STAR_CITIZEN_SHIPS));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +75,7 @@ export function ShipDropdown({
         if (!response.ok) return;
         const payload = (await response.json()) as ShipCatalogResponse;
         if (!cancelled && payload.ships?.length) {
-          setShips(payload.ships);
+          setShips(withRequiredShips(payload.ships));
         }
       } finally {
         if (!cancelled) {
@@ -52,7 +90,7 @@ export function ShipDropdown({
     };
   }, []);
 
-  const options = useMemo(() => ships, [ships]);
+  const options = useMemo(() => withRequiredShips(ships), [ships]);
 
   return (
     <div className="space-y-1">
