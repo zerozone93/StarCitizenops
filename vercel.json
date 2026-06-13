@@ -13,6 +13,10 @@
     {
       "path": "/api/cron/weekly-mission-seed-sync",
       "schedule": "30 4 * * 1"
+    },
+    {
+      "path": "/api/cron/biweekly-ship-catalog-sync",
+      "schedule": "0 5 */14 * *"
     }
   ]
 }

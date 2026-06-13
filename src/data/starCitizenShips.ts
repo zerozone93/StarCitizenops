@@ -7,7 +7,7 @@ export type StarCitizenShip = {
   size: ShipSize;
 };
 
-export const STAR_CITIZEN_SHIP_DATA_VERSION = "4.8";
+export const STAR_CITIZEN_SHIP_DATA_VERSION = "4.9";
 
 export const STAR_CITIZEN_SHIPS: StarCitizenShip[] = [
   // Aegis
@@ -92,6 +92,8 @@ export const STAR_CITIZEN_SHIPS: StarCitizenShip[] = [
   { name: "Cutlass Red", manufacturer: "Drake", role: ShipRole.MEDICAL, size: ShipSize.MEDIUM },
   { name: "Corsair", manufacturer: "Drake", role: ShipRole.EXPLORATION, size: ShipSize.LARGE },
   { name: "Caterpillar", manufacturer: "Drake", role: ShipRole.CARGO, size: ShipSize.LARGE },
+  { name: "Ironclad", manufacturer: "Drake", role: ShipRole.CARGO, size: ShipSize.LARGE },
+  { name: "Ironclad Assault", manufacturer: "Drake", role: ShipRole.GUNSHIP, size: ShipSize.LARGE },
   { name: "Dragonfly", manufacturer: "Drake", role: ShipRole.RACING, size: ShipSize.SNUB },
   { name: "Kraken", manufacturer: "Drake", role: ShipRole.CAPITAL, size: ShipSize.CAPITAL },
   { name: "Vulture", manufacturer: "Drake", role: ShipRole.SALVAGE, size: ShipSize.SMALL },
