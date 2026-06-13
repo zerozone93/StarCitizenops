@@ -66,17 +66,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         const demoUser = DEMO_USERS[parsed.data.email];
-        if (demoUser && demoUser.passwords.includes(parsed.data.password)) {
-          return {
-            id: demoUser.id,
-            name: demoUser.name,
-            email: parsed.data.email,
-            image: null,
-            siteRole: demoUser.siteRole,
-            twoFactorPending: false,
-            twoFactorMethod: null,
-          };
-        }
+        const demoPasswordValid = demoUser ? demoUser.passwords.includes(parsed.data.password) : false;
 
         let user: {
           id: string;
@@ -112,7 +102,30 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        if (user && demoPasswordValid) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email ?? parsed.data.email,
+            image: user.image,
+            siteRole: user.siteRole,
+            twoFactorPending: false,
+            twoFactorMethod: null,
+          };
+        }
+
         if (!user?.passwordHash) {
+          if (demoPasswordValid) {
+            return {
+              id: demoUser.id,
+              name: demoUser.name,
+              email: parsed.data.email,
+              image: null,
+              siteRole: demoUser.siteRole,
+              twoFactorPending: false,
+              twoFactorMethod: null,
+            };
+          }
           return null;
         }
 
