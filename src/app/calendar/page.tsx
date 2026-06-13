@@ -19,7 +19,8 @@ interface CalendarPageProps {
 
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
   const user = await requireUser();
-  const { organizationId } = await searchParams;
+  try {
+    const { organizationId } = await searchParams;
 
   const memberships = await prisma.organizationMember.findMany({
     where: { userId: user.id },
@@ -111,57 +112,69 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     };
   });
 
-  return (
-    <AppShell
-      title="Calendar"
-      subtitle={`${selectedMembership.organization.name} [${selectedMembership.organization.tag}]`}
-    >
-      <section className="rounded-xl border border-cyan-500/20 bg-slate-900/50 p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-cyan-100">Organization calendar</h3>
-            <p className="mt-1 text-xs text-slate-400">
-              Quick member calendar access from the sidebar. Switch organizations if you belong to more than one.
-            </p>
+    return (
+      <AppShell
+        title="Calendar"
+        subtitle={`${selectedMembership.organization.name} [${selectedMembership.organization.tag}]`}
+      >
+        <section className="rounded-xl border border-cyan-500/20 bg-slate-900/50 p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold text-cyan-100">Organization calendar</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Quick member calendar access from the sidebar. Switch organizations if you belong to more than one.
+              </p>
+            </div>
+
+            <form action="/calendar" method="get" className="flex items-center gap-2">
+              <label htmlFor="calendar-org-select" className="text-xs uppercase tracking-wide text-cyan-200">
+                Organization
+              </label>
+              <select
+                id="calendar-org-select"
+                name="organizationId"
+                defaultValue={selectedMembership.organizationId}
+                className="rounded-md border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-cyan-100"
+              >
+                {memberships.map((membership) => (
+                  <option key={membership.organizationId} value={membership.organizationId}>
+                    {membership.organization.name} [{membership.organization.tag}]
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100"
+              >
+                Open
+              </button>
+            </form>
           </div>
 
-          <form action="/calendar" method="get" className="flex items-center gap-2">
-            <label htmlFor="calendar-org-select" className="text-xs uppercase tracking-wide text-cyan-200">
-              Organization
-            </label>
-            <select
-              id="calendar-org-select"
-              name="organizationId"
-              defaultValue={selectedMembership.organizationId}
-              className="rounded-md border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-cyan-100"
-            >
-              {memberships.map((membership) => (
-                <option key={membership.organizationId} value={membership.organizationId}>
-                  {membership.organization.name} [{membership.organization.tag}]
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="rounded-md border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100"
-            >
-              Open
-            </button>
-          </form>
-        </div>
-
-        <OrganizationEventCalendar
-          organizationId={selectedMembership.organizationId}
-          events={calendarEvents}
-          canCreateEvents={canCreateEvents}
-          canManageEvents={canManageEvents}
-          canRSVPEvents={true}
-          createEventAction={createOrganizationEventAction}
-          updateEventAction={updateOrganizationEventAction}
-          deleteEventAction={deleteOrganizationEventAction}
-          userTimezone={viewerTimezone}
-        />
-      </section>
-    </AppShell>
-  );
+          <OrganizationEventCalendar
+            organizationId={selectedMembership.organizationId}
+            events={calendarEvents}
+            canCreateEvents={canCreateEvents}
+            canManageEvents={canManageEvents}
+            canRSVPEvents={true}
+            createEventAction={createOrganizationEventAction}
+            updateEventAction={updateOrganizationEventAction}
+            deleteEventAction={deleteOrganizationEventAction}
+            userTimezone={viewerTimezone}
+          />
+        </section>
+      </AppShell>
+    );
+  } catch {
+    return (
+      <AppShell title="Calendar" subtitle="Organization events">
+        <section className="rounded-xl border border-amber-300/20 bg-slate-900/60 p-4">
+          <h3 className="text-lg font-semibold text-amber-100">Calendar is temporarily unavailable</h3>
+          <p className="mt-2 text-sm text-slate-300">
+            Event data cannot be loaded right now because the upstream database service is temporarily unavailable.
+          </p>
+        </section>
+      </AppShell>
+    );
+  }
 }

@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  try {
 
   const userMemberships = await prisma.organizationMember.findMany({
     where: { userId: user.id },
@@ -337,4 +338,24 @@ export default async function DashboardPage() {
       </section>
     </AppShell>
   );
+  } catch {
+    return (
+      <AppShell title="Dashboard" subtitle="Operational overview">
+        <section className="rounded-2xl border border-amber-300/25 bg-slate-900/65 p-4">
+          <h3 className="text-lg font-semibold text-amber-100">Data services are temporarily unavailable</h3>
+          <p className="mt-2 text-sm text-slate-300">
+            Command data is temporarily unavailable due to an upstream database issue. Core navigation is still online.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/calendar" className="rounded-md border border-cyan-300/40 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">
+              Open calendar
+            </Link>
+            <Link href="/login" className="rounded-md border border-orange-300/40 bg-orange-300/10 px-3 py-2 text-xs font-semibold text-orange-100">
+              Re-authenticate
+            </Link>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
 }
