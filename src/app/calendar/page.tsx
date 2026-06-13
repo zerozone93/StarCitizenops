@@ -111,8 +111,6 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     };
   });
 
-  const redirectTo = `/calendar?organizationId=${selectedMembership.organizationId}`;
-
   return (
     <AppShell
       title="Calendar"
@@ -162,7 +160,6 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
           updateEventAction={updateOrganizationEventAction}
           deleteEventAction={deleteOrganizationEventAction}
           userTimezone={viewerTimezone}
-          redirectTo={redirectTo}
         />
       </section>
     </AppShell>
