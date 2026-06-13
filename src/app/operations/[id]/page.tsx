@@ -233,7 +233,7 @@ export default async function OperationDetailPage({ params }: { params: Promise<
       </section>
 
       <section className="grid gap-4">
-        <AIPlannerPanel operationId={operation.id} />
+        <AIPlannerPanel operationId={operation.id} organizationName={operation.organization.name} />
         <article className="space-y-3 rounded-xl border border-cyan-500/20 bg-slate-900/50 p-4">
           <h3 className="text-lg font-semibold text-cyan-100">Latest AI plan</h3>
           <pre className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md border border-cyan-500/20 bg-slate-950 p-3 text-xs text-slate-200">
