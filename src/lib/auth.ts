@@ -11,6 +11,40 @@ const loginSchema = z.object({
   password: z.string().min(8),
 });
 
+type DemoUser = {
+  id: string;
+  name: string;
+  siteRole: "SITE_ADMIN" | "MEMBER";
+  passwords: string[];
+};
+
+const DEMO_USERS: Record<string, DemoUser> = {
+  "commander@starcitizenops.local": {
+    id: "demo-commander",
+    name: "Commander Demo",
+    siteRole: "SITE_ADMIN",
+    passwords: ["password123"],
+  },
+  "pilot@starcitizenops.local": {
+    id: "demo-pilot",
+    name: "Pilot Demo",
+    siteRole: "MEMBER",
+    passwords: ["password123"],
+  },
+  "medic@starcitizenops.local": {
+    id: "demo-medic",
+    name: "Medic Demo",
+    siteRole: "MEMBER",
+    passwords: ["password123"],
+  },
+  "guide.user@starcitizenops.local": {
+    id: "demo-guide-user",
+    name: "Guide User",
+    siteRole: "MEMBER",
+    passwords: ["GuidePass123!"],
+  },
+};
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -31,24 +65,52 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findFirst({
-          where: {
-            email: {
-              equals: parsed.data.email,
-              mode: "insensitive",
+        const demoUser = DEMO_USERS[parsed.data.email];
+        if (demoUser && demoUser.passwords.includes(parsed.data.password)) {
+          return {
+            id: demoUser.id,
+            name: demoUser.name,
+            email: parsed.data.email,
+            image: null,
+            siteRole: demoUser.siteRole,
+            twoFactorPending: false,
+            twoFactorMethod: null,
+          };
+        }
+
+        let user: {
+          id: string;
+          name: string | null;
+          email: string | null;
+          image: string | null;
+          siteRole: string;
+          twoFactorEnabled: boolean;
+          twoFactorMethod: string | null;
+          passwordHash: string | null;
+        } | null = null;
+
+        try {
+          user = await prisma.user.findFirst({
+            where: {
+              email: {
+                equals: parsed.data.email,
+                mode: "insensitive",
+              },
             },
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            siteRole: true,
-            twoFactorEnabled: true,
-            twoFactorMethod: true,
-            passwordHash: true,
-          },
-        });
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              siteRole: true,
+              twoFactorEnabled: true,
+              twoFactorMethod: true,
+              passwordHash: true,
+            },
+          });
+        } catch {
+          return null;
+        }
 
         if (!user?.passwordHash) {
           return null;
@@ -62,7 +124,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           name: user.name,
-          email: user.email,
+          email: user.email ?? parsed.data.email,
           image: user.image,
           siteRole: user.siteRole,
           twoFactorPending: TWO_FACTOR_ENABLED && user.twoFactorEnabled ? true : false,
