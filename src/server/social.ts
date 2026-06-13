@@ -1820,6 +1820,30 @@ export async function renameConversationGroup(userId: string, groupId: string, n
   return prisma.conversationGroup.update({ where: { id: groupId }, data: { name: trimmed }, select: { id: true, name: true } });
 }
 
+export async function deleteDirectConversation(userId: string, conversationId: string) {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    include: { participants: { select: { userId: true } } },
+  });
+
+  if (!conversation) throw new NotFoundError("Conversation not found");
+  if (conversation.isChannel) throw new ValidationError("Use channel delete for org channels");
+
+  const isParticipant = conversation.participants.some((p) => p.userId === userId);
+  if (!isParticipant) throw new ForbiddenError("You are not part of this conversation");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.conversationParticipant.deleteMany({ where: { conversationId, userId } });
+    const remaining = await tx.conversationParticipant.count({ where: { conversationId } });
+    if (remaining === 0) {
+      await tx.message.deleteMany({ where: { conversationId } });
+      await tx.conversation.delete({ where: { id: conversationId } });
+    }
+  });
+
+  return { ok: true };
+}
+
 export async function deleteConversationGroup(userId: string, groupId: string) {
   const group = await prisma.conversationGroup.findUnique({ where: { id: groupId }, select: { id: true, organizationId: true } });
   if (!group) throw new NotFoundError("Group not found");

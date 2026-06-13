@@ -297,6 +297,7 @@ export function ChatWorkspace({
   const [editingChannelName, setEditingChannelName] = useState(false);
   const [archivingChannel, setArchivingChannel] = useState(false);
   const [deletingChannel, setDeletingChannel] = useState(false);
+  const [deletingDmId, setDeletingDmId] = useState<string | null>(null);
   const [showAccessEditor, setShowAccessEditor] = useState(false);
   const [accessMembers, setAccessMembers] = useState<ChannelAccessMember[]>([]);
   const [allowedUserIds, setAllowedUserIds] = useState<string[]>([]);
@@ -613,6 +614,26 @@ export function ChatWorkspace({
     }
   }, [archivingChannel, loadConversations, selectedConversation]);
 
+  const deleteDirectMessage = useCallback(async (conversationId: string) => {
+    if (!window.confirm("Remove this DM? You will leave the conversation. The thread is deleted when both participants leave.")) return;
+    setDeletingDmId(conversationId);
+    try {
+      const response = await fetch("/api/social/conversations", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+      const payload = (await response.json()) as { error?: string };
+      if (!response.ok) { setActionError(payload.error || "Unable to delete DM"); return; }
+      setSelectedConversationId((current) => (current === conversationId ? null : current));
+      await loadConversations();
+    } catch {
+      setActionError("Unable to delete DM");
+    } finally {
+      setDeletingDmId(null);
+    }
+  }, [loadConversations]);
+
   const deleteChannel = useCallback(async () => {
     if (!selectedConversation || !selectedConversation.isChannel || !selectedConversation.organization || !selectedConversation.canManage || deletingChannel) {
       return;
@@ -821,8 +842,8 @@ export function ChatWorkspace({
   }, [loadGroups, selectedConversation?.canManage, selectedConversation?.organization]);
 
   return (
-    <div className="grid gap-3 xl:grid-cols-[300px_minmax(0,1fr)_280px]">
-      <aside className="rounded-2xl border border-slate-700/80 bg-[#1e1f22] p-3">
+    <div className="grid gap-3 overflow-hidden xl:grid-cols-[300px_minmax(0,1fr)_280px]" style={{ height: "calc(100dvh - 8.5rem)" }}>
+      <aside className="flex flex-col overflow-hidden rounded-2xl border border-slate-700/80 bg-[#1e1f22] p-3">
         <div className="rounded-xl border border-slate-700/60 bg-[#2b2d31] p-3">
           <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">StarComms Hub</p>
           <h3 className="mt-1 text-lg font-semibold text-slate-100">Channels and DMs</h3>
@@ -844,28 +865,38 @@ export function ChatWorkspace({
           />
         </div>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 flex-1 space-y-4 overflow-y-auto pr-1">
           <section>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Direct messages</p>
             <div className="mt-2 space-y-1.5">
               {directMessages.map((conversation) => {
                 const active = conversation.id === selectedConversationId;
                 return (
-                  <button
-                    key={conversation.id}
-                    type="button"
-                    onClick={() => selectConversation(conversation.id)}
-                    className={`w-full rounded-md px-2.5 py-2 text-left text-sm transition ${
-                      active
-                        ? "bg-[#3f4248] text-slate-100"
-                        : "text-slate-300 hover:bg-[#313338] hover:text-slate-100"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate font-medium">{getConversationLabel(conversation, currentUserId)}</p>
-                      <ReadStateBadge unreadCount={unreadByConversation[conversation.id] || 0} isSelected={active} />
-                    </div>
-                  </button>
+                  <div key={conversation.id} className="group/dm flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => selectConversation(conversation.id)}
+                      className={`flex-1 truncate rounded-md px-2.5 py-2 text-left text-sm transition ${
+                        active
+                          ? "bg-[#3f4248] text-slate-100"
+                          : "text-slate-300 hover:bg-[#313338] hover:text-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-medium">{getConversationLabel(conversation, currentUserId)}</p>
+                        <ReadStateBadge unreadCount={unreadByConversation[conversation.id] || 0} isSelected={active} />
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete DM"
+                      disabled={deletingDmId === conversation.id}
+                      onClick={() => void deleteDirectMessage(conversation.id)}
+                      className="invisible shrink-0 rounded px-1.5 py-1 text-[11px] text-slate-500 hover:bg-rose-500/20 hover:text-rose-300 group-hover/dm:visible disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 );
               })}
               {!directMessages.length ? <p className="text-xs text-slate-500">No direct messages yet.</p> : null}
@@ -1051,7 +1082,7 @@ export function ChatWorkspace({
         </div>
       </aside>
 
-      <section className="rounded-2xl border border-slate-700/80 bg-[#313338]">
+      <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-700/80 bg-[#313338]">
         {selectedConversation ? (
           <>
             <div className="flex items-center justify-between gap-3 border-b border-slate-700/80 px-4 py-3">
@@ -1149,6 +1180,16 @@ export function ChatWorkspace({
                     className="rounded-md bg-rose-500/15 px-2 py-1 text-[11px] text-rose-100 hover:bg-rose-500/25 disabled:opacity-60"
                   >
                     {deletingChannel ? "Deleting..." : "Delete"}
+                  </button>
+                ) : null}
+                {!selectedConversation.isChannel ? (
+                  <button
+                    type="button"
+                    onClick={() => void deleteDirectMessage(selectedConversation.id)}
+                    disabled={deletingDmId === selectedConversation.id}
+                    className="rounded-md bg-rose-500/15 px-2 py-1 text-[11px] text-rose-200 hover:bg-rose-500/25 disabled:opacity-60"
+                  >
+                    {deletingDmId === selectedConversation.id ? "Removing..." : "Delete DM"}
                   </button>
                 ) : null}
                 <Link
@@ -1318,7 +1359,7 @@ export function ChatWorkspace({
             {loadingMessages && !selectedMessages.length ? (
               <div className="p-4 text-sm text-slate-400">Loading conversation...</div>
             ) : (
-              <div className="p-2 sm:p-3">
+              <div className="flex-1 overflow-y-auto p-2 sm:p-3">
                 <LiveChat
                   key={selectedConversation.id}
                   conversationId={selectedConversation.id}
@@ -1344,7 +1385,7 @@ export function ChatWorkspace({
         )}
       </section>
 
-      <aside className="rounded-2xl border border-slate-700/80 bg-[#2b2d31] p-3">
+      <aside className="flex flex-col overflow-y-auto rounded-2xl border border-slate-700/80 bg-[#2b2d31] p-3">
         <section className="rounded-xl border border-slate-700/70 bg-[#232428] p-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Your badges</p>
           <div className="mt-2 flex flex-wrap gap-2">
