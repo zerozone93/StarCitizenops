@@ -5,12 +5,14 @@ import { AIPlannerPanel } from "@/components/ai-planner-panel";
 import { AppShell } from "@/components/app-shell";
 import { AssetList } from "@/components/asset-list";
 import { CommentThread } from "@/components/comment-thread";
+import { FleetCapabilityBadges } from "@/components/fleet/FleetCapabilityBadges";
 import { LocalTime } from "@/components/local-time";
 import { MissionTimeline } from "@/components/mission-timeline";
 import { RSVPPanel } from "@/components/rsvp-panel";
 import { RoleBadge } from "@/components/role-badge";
 import { StatusBadge } from "@/components/status-badge";
 import { ThreatLevelBadge } from "@/components/threat-level-badge";
+import { calculateOrgFleetReadiness, getOperationAttendeeCapabilityReport } from "@/lib/fleet";
 import { prisma } from "@/lib/prisma";
 import { getUserTimezone, requireUser } from "@/lib/session";
 
@@ -96,6 +98,11 @@ export default async function OperationDetailPage({ params }: { params: Promise<
 
   if (!operation) notFound();
 
+  const [attendeeFleetReport, orgFleetReadiness] = await Promise.all([
+    getOperationAttendeeCapabilityReport(operation.id),
+    calculateOrgFleetReadiness(operation.organizationId),
+  ]);
+
   return (
     <AppShell title={operation.title} subtitle="Operation detail">
       <div className="mb-4 flex flex-col gap-2">
@@ -178,6 +185,51 @@ export default async function OperationDetailPage({ params }: { params: Promise<
       <section className="grid gap-4">
         <CommentThread operationId={operation.id} comments={operation.comments} currentUserId={user.id} />
         <RSVPPanel operationId={operation.id} entries={operation.rsvps} />
+
+        <article className="space-y-3 rounded-xl border border-emerald-500/20 bg-slate-900/50 p-4">
+          <h3 className="text-lg font-semibold text-emerald-100">Attending Fleet Capability Highlights</h3>
+          <p className="text-xs text-slate-400">
+            Based on GOING RSVPs. Shows what capabilities attending members bring from their fleets.
+          </p>
+
+          <div className="grid gap-3 text-sm text-slate-300 md:grid-cols-2">
+            <p>Attending members: {attendeeFleetReport.attendingCount}</p>
+            <p>Org available assets: {orgFleetReadiness.availableAssetCount}</p>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-emerald-100">Attending capabilities</h4>
+            <FleetCapabilityBadges capabilityCounts={attendeeFleetReport.capabilityCounts} />
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-semibold text-emerald-100">Requirement matches from attendees</h4>
+            {!attendeeFleetReport.requirementHighlights.length ? (
+              <p className="text-xs text-slate-400">No required ship/vehicle requirements were set on this operation.</p>
+            ) : (
+              attendeeFleetReport.requirementHighlights.map((highlight) => (
+                <div key={highlight.requirement} className="rounded-md border border-emerald-500/20 bg-slate-950/40 p-3">
+                  <p className="text-sm font-medium text-emerald-100">
+                    {highlight.requirement}: {highlight.totalMatchedQuantity} matched from attending members
+                  </p>
+
+                  {!highlight.matchingOwners.length ? (
+                    <p className="mt-1 text-xs text-rose-300">No attending members currently cover this requirement.</p>
+                  ) : (
+                    <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                      {highlight.matchingOwners.map((owner, index) => (
+                        <li key={`${highlight.requirement}-${owner.userId}-${owner.assetName}-${index}`}>
+                          {owner.quantity}x {owner.assetName} attending - {owner.displayName}
+                          {owner.starCitizenHandle ? ` (@${owner.starCitizenHandle})` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </article>
       </section>
 
       <section className="grid gap-4">

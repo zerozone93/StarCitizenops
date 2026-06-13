@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { OrganizationMemberRole } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,24 @@ type Member = {
   appPrivileges: Record<AppPrivilegeAction, boolean | null>;
 };
 
+type PrivilegeAuditEntry = {
+  id: string;
+  type: "organization_member_privilege_updated" | "organization_member_role_updated";
+  title: string;
+  body: string | null;
+  createdAt: string;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  targetUserEmail: string | null;
+};
+
+type AuditTypeFilter = "ALL" | "PERMISSIONS" | "ROLES";
+
+type LocalToast = {
+  id: string;
+  message: string;
+};
+
 const APP_PRIVILEGE_LABELS: Record<AppPrivilegeAction, string> = {
   editOrganization: "Edit organization settings",
   inviteMembers: "Invite members",
@@ -33,6 +51,28 @@ const APP_PRIVILEGE_LABELS: Record<AppPrivilegeAction, string> = {
   postAfterActionReports: "Post bulletins/reports",
   manageChannels: "Manage organization chat channels",
 };
+
+type PrivilegeScope = "view" | "do";
+
+const APP_PRIVILEGE_SCOPES: Record<AppPrivilegeAction, PrivilegeScope> = {
+  editOrganization: "do",
+  inviteMembers: "do",
+  createOperation: "do",
+  editOperation: "do",
+  assignRoles: "do",
+  inviteOrganizations: "do",
+  viewPrivateOperations: "view",
+  postAfterActionReports: "do",
+  manageChannels: "do",
+};
+
+const PRIVILEGE_PRESETS = {
+  READ_ONLY: "Read Only",
+  TEAM_LEAD: "Team Lead",
+  FULL_CONTROL: "Full Control",
+} as const;
+
+type PrivilegePreset = keyof typeof PRIVILEGE_PRESETS;
 
 // Organize privileges by category for better UX
 const PRIVILEGE_CATEGORIES: Record<string, AppPrivilegeAction[]> = {
@@ -147,27 +187,62 @@ function getRolePermissionDetails(role: OrganizationMemberRole): {
 export function MemberPrivilegeManager({ organizationId, userRole, userId }: MemberPrivilegeManagerProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [auditEntries, setAuditEntries] = useState<PrivilegeAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [channelsLoading, setChannelsLoading] = useState(true);
+  const [auditLoading, setAuditLoading] = useState(true);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [updatingChannelId, setUpdatingChannelId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<LocalToast[]>([]);
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [categoryMemberSelections, setCategoryMemberSelections] = useState<Partial<Record<string, string>>>({});
   const [newChannelTitle, setNewChannelTitle] = useState("");
   const [newChannelDescription, setNewChannelDescription] = useState("");
   const [newChannelVisibility, setNewChannelVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [auditTypeFilter, setAuditTypeFilter] = useState<AuditTypeFilter>("ALL");
+  const [auditMemberFilter, setAuditMemberFilter] = useState<string>("ALL");
 
   const canManage = userRole === "OWNER" || userRole === "OFFICER" || userRole === "COMMANDER";
   const selfMember = members.find((member) => member.userId === userId) || null;
   const canManageChannels = userRole === "OWNER" || selfMember?.appPrivileges?.manageChannels === true;
 
   const basePath = `/api/organizations/${organizationId}/members/privileges`;
+  const auditPath = `/api/organizations/${organizationId}/members/privileges/audit`;
   const channelsPath = `/api/organizations/${organizationId}/social-channels`;
 
-  const [filterRole, setFilterRole] = useState<OrganizationMemberRole | "ALL">("ALL");
-  const [searchTerm, setSearchTerm] = useState("");
+  const pushToast = useCallback((message: string) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setToasts((prev) => [...prev, { id, message }]);
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3500);
+  }, []);
+
+  useEffect(() => {
+    if (!members.length) {
+      setCategoryMemberSelections({});
+      return;
+    }
+
+    setCategoryMemberSelections((prev) => {
+      const nextSelections: Partial<Record<string, string>> = { ...prev };
+
+      for (const category of Object.keys(PRIVILEGE_CATEGORIES)) {
+        const selectedId = prev[category];
+        const stillExists = selectedId ? members.some((member) => member.memberId === selectedId) : false;
+
+        if (!stillExists) {
+          nextSelections[category] = members[0].memberId;
+        }
+      }
+
+      return nextSelections;
+    });
+  }, [members]);
 
   const loadMembers = useCallback(async () => {
     try {
@@ -202,6 +277,100 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
     }
   }, [channelsPath]);
 
+  const loadAudit = useCallback(async () => {
+    try {
+      setAuditLoading(true);
+      const response = await fetch(`${auditPath}?take=12`, { cache: "no-store" });
+      if (!response.ok) {
+        setAuditEntries([]);
+        return;
+      }
+
+      const data = (await response.json()) as PrivilegeAuditEntry[];
+      setAuditEntries(data);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, [auditPath]);
+
+  const applyPresetToPrivilege = (preset: PrivilegePreset, privilege: AppPrivilegeAction) => {
+    if (preset === "FULL_CONTROL") {
+      return true;
+    }
+
+    if (preset === "READ_ONLY") {
+      return APP_PRIVILEGE_SCOPES[privilege] === "view";
+    }
+
+    if (APP_PRIVILEGE_SCOPES[privilege] === "view") {
+      return true;
+    }
+
+    return privilege === "createOperation" || privilege === "editOperation" || privilege === "postAfterActionReports";
+  };
+
+  const auditMemberOptions = useMemo(() => {
+    const options = new Map<string, string>();
+
+    for (const member of members) {
+      options.set(member.userId, member.userName);
+    }
+
+    for (const entry of auditEntries) {
+      if (!entry.targetUserId) continue;
+      if (options.has(entry.targetUserId)) continue;
+      options.set(entry.targetUserId, entry.targetUserName || entry.targetUserEmail || "Unknown member");
+    }
+
+    return Array.from(options.entries()).map(([value, label]) => ({ value, label }));
+  }, [auditEntries, members]);
+
+  const filteredAuditEntries = useMemo(() => {
+    return auditEntries.filter((entry) => {
+      if (auditTypeFilter === "PERMISSIONS" && entry.type !== "organization_member_privilege_updated") {
+        return false;
+      }
+      if (auditTypeFilter === "ROLES" && entry.type !== "organization_member_role_updated") {
+        return false;
+      }
+      if (auditMemberFilter !== "ALL" && entry.targetUserId !== auditMemberFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [auditEntries, auditMemberFilter, auditTypeFilter]);
+
+  const handleExportAuditCsv = () => {
+    if (!filteredAuditEntries.length) {
+      pushToast("No audit entries to export with the current filters.");
+      return;
+    }
+
+    const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const rows = [
+      ["timestamp", "changeType", "targetMember", "title", "details"],
+      ...filteredAuditEntries.map((entry) => [
+        new Date(entry.createdAt).toISOString(),
+        entry.type === "organization_member_privilege_updated" ? "permission" : "role",
+        entry.targetUserName || entry.targetUserEmail || "Unknown",
+        entry.title,
+        entry.body || "",
+      ]),
+    ];
+
+    const csv = `${rows.map((row) => row.map((cell) => escapeCsv(String(cell))).join(",")).join("\n")}\n`;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.setAttribute("download", `privilege-audit-${organizationId}-${Date.now()}.csv`);
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+    pushToast(`Exported ${filteredAuditEntries.length} audit entries to CSV.`);
+  };
+
   const handleRoleChange = async (memberId: string, newRole: string) => {
     try {
       setUpdatingMemberId(memberId);
@@ -224,6 +393,7 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
       setMembers((prev) =>
         prev.map((m) => (m.memberId === memberId ? { ...m, currentRole: newRole as OrganizationMemberRole } : m))
       );
+      void loadAudit();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update member role");
@@ -237,6 +407,13 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
     privilege: AppPrivilegeAction,
     nextValue: boolean
   ) => {
+    const member = members.find((m) => m.memberId === memberId);
+    if (!member) return;
+
+    if (member.appPrivileges?.[privilege] === nextValue) {
+      return;
+    }
+
     try {
       setUpdatingMemberId(memberId);
       setError(null);
@@ -272,10 +449,87 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
         )
       );
 
+      pushToast(
+        `${member.userName}: ${APP_PRIVILEGE_LABELS[privilege]} set to ${nextValue ? "allowed" : "denied"}.`
+      );
+      void loadAudit();
+
       setSuccess((payload as { success: boolean; message: string }).message);
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update member privilege");
+    } finally {
+      setUpdatingMemberId(null);
+    }
+  };
+
+  const handleCategoryPreset = async (
+    category: string,
+    privileges: AppPrivilegeAction[],
+    preset: PrivilegePreset
+  ) => {
+    const selectedId = categoryMemberSelections[category] || members[0]?.memberId;
+    const selectedCategoryMember = members.find((member) => member.memberId === selectedId) || null;
+    if (!selectedCategoryMember) return;
+
+    const appPrivileges = Object.fromEntries(
+      privileges.map((privilege) => [privilege, applyPresetToPrivilege(preset, privilege)])
+    ) as Partial<Record<AppPrivilegeAction, boolean>>;
+
+    const changed = privileges.filter(
+      (privilege) => selectedCategoryMember.appPrivileges?.[privilege] !== appPrivileges[privilege]
+    );
+
+    if (!changed.length) {
+      pushToast(`${selectedCategoryMember.userName}: ${PRIVILEGE_PRESETS[preset]} already applied for ${category}.`);
+      return;
+    }
+
+    try {
+      setUpdatingMemberId(selectedCategoryMember.memberId);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch(basePath, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          memberId: selectedCategoryMember.memberId,
+          appPrivileges,
+        }),
+      });
+
+      const payload = (await response.json()) as { success: boolean; message: string } | ApiErrorPayload;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(payload as ApiErrorPayload, "Failed to apply privilege preset"));
+      }
+
+      setMembers((prev) =>
+        prev.map((member) =>
+          member.memberId === selectedCategoryMember.memberId
+            ? {
+                ...member,
+                appPrivileges: {
+                  ...member.appPrivileges,
+                  ...appPrivileges,
+                },
+              }
+            : member
+        )
+      );
+
+      for (const privilege of changed) {
+        const value = appPrivileges[privilege] === true;
+        pushToast(
+          `${selectedCategoryMember.userName}: ${APP_PRIVILEGE_LABELS[privilege]} set to ${value ? "allowed" : "denied"}.`
+        );
+      }
+      void loadAudit();
+
+      setSuccess((payload as { success: boolean; message: string }).message);
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to apply privilege preset");
     } finally {
       setUpdatingMemberId(null);
     }
@@ -309,6 +563,7 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
         setSelectedMemberId("");
         setShowDetails(null);
       }
+      void loadAudit();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to remove member");
@@ -381,21 +636,14 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
     const timer = setTimeout(() => {
       void loadMembers();
       void loadChannels();
+      void loadAudit();
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [canManage, loadChannels, loadMembers]);
+  }, [canManage, loadAudit, loadChannels, loadMembers]);
 
   const selectedMember = members.find((member) => member.memberId === selectedMemberId) || members[0] || null;
   const selectedMemberIdValue = selectedMember?.memberId || "";
-
-  // Filter members based on role and search term
-  const filteredMembers = members.filter((member) => {
-    if (filterRole !== "ALL" && member.currentRole !== filterRole) return false;
-    if (searchTerm && !member.userName.toLowerCase().includes(searchTerm.toLowerCase()) && 
-        !member.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
 
   if (!canManage) {
     return (
@@ -411,6 +659,16 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
 
   return (
     <div className="space-y-6">
+      {toasts.length ? (
+        <div className="fixed right-4 top-4 z-50 flex w-[340px] flex-col gap-2">
+          {toasts.map((toast) => (
+            <div key={toast.id} className="rounded-md border border-cyan-500/30 bg-slate-950/95 px-3 py-2 text-xs text-cyan-100 shadow-lg">
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3">
           <p className="text-sm text-red-300">{error}</p>
@@ -438,75 +696,112 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
             <p className="text-sm text-slate-400">No members found in organization.</p>
           ) : (
             <>
-              {/* Filters */}
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <input
-                  type="text"
-                  placeholder="Search members..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 rounded-md border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-cyan-100 placeholder-slate-500"
-                />
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value as OrganizationMemberRole | "ALL")}
-                  className="rounded-md border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-cyan-100"
-                >
-                  <option value="ALL">All Roles</option>
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role} value={role}>
-                      {getMilitaryRankLabel(role)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Privilege Categories */}
               <div className="space-y-4">
                 {Object.entries(PRIVILEGE_CATEGORIES).map(([category, privileges]) => (
                   <div key={category} className="rounded-lg border border-cyan-500/20 bg-slate-800/30 p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-cyan-100">{category}</h3>
-                    <div className="space-y-3">
-                      {privileges.map((privilege) => (
-                        <div key={privilege} className="space-y-2">
-                          <p className="text-xs font-medium text-slate-300">{APP_PRIVILEGE_LABELS[privilege]}</p>
-                          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                            {filteredMembers.map((member) => {
-                              const isChecked = member.appPrivileges?.[privilege] === true;
-                              return (
-                                <div key={`${member.memberId}-${privilege}`} className="flex items-center gap-2">
+                    <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <h3 className="text-sm font-semibold text-cyan-100">{category}</h3>
+                      <div className="w-full space-y-2 md:w-[460px]">
+                        <div>
+                          <label className="mb-1 block text-[11px] uppercase tracking-wide text-cyan-200">Select member</label>
+                          <select
+                            value={categoryMemberSelections[category] || ""}
+                            onChange={(event) =>
+                              setCategoryMemberSelections((prev) => ({
+                                ...prev,
+                                [category]: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-md border border-cyan-500/30 bg-slate-950 px-3 py-2 text-sm text-cyan-100"
+                          >
+                            {members.map((member) => (
+                              <option key={`${category}-${member.memberId}`} value={member.memberId}>
+                                {member.userName} - {getMilitaryRankLabel(member.currentRole)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(PRIVILEGE_PRESETS).map(([presetKey, label]) => (
+                            <Button
+                              key={`${category}-${presetKey}`}
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                void handleCategoryPreset(category, privileges, presetKey as PrivilegePreset)
+                              }
+                              disabled={
+                                updatingMemberId ===
+                                (categoryMemberSelections[category] || members[0]?.memberId || "")
+                              }
+                              className="h-7 text-[11px]"
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const selectedId = categoryMemberSelections[category] || members[0]?.memberId;
+                      const selectedCategoryMember = members.find((member) => member.memberId === selectedId) || null;
+
+                      if (!selectedCategoryMember) {
+                        return <p className="text-xs text-slate-400">Select a member to edit category privileges.</p>;
+                      }
+
+                      return (
+                        <div className="space-y-2">
+                          {privileges.map((privilege) => {
+                            const isChecked = selectedCategoryMember.appPrivileges?.[privilege] === true;
+                            const scope = APP_PRIVILEGE_SCOPES[privilege];
+
+                            return (
+                              <div
+                                key={`${category}-${selectedCategoryMember.memberId}-${privilege}`}
+                                className="flex items-center justify-between rounded-md border border-slate-700/60 bg-slate-900/60 px-3 py-2"
+                              >
+                                <div className="pr-3">
+                                  <p className="text-xs font-medium text-slate-200">{APP_PRIVILEGE_LABELS[privilege]}</p>
+                                  <p className="text-[11px] text-slate-400">
+                                    {scope === "view" ? "Can view" : "Can do/manage"}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Badge
+                                    className={`border px-1 py-0 text-[10px] ${
+                                      scope === "view"
+                                        ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
+                                        : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                                    }`}
+                                  >
+                                    {scope === "view" ? "View" : "Do"}
+                                  </Badge>
                                   <Checkbox
-                                    id={`${member.memberId}-${privilege}`}
+                                    id={`${category}-${selectedCategoryMember.memberId}-${privilege}`}
                                     checked={isChecked}
                                     onCheckedChange={(checked) =>
-                                      void handlePrivilegeToggle(member.memberId, privilege, checked === true)
+                                      void handlePrivilegeToggle(
+                                        selectedCategoryMember.memberId,
+                                        privilege,
+                                        checked === true
+                                      )
                                     }
-                                    disabled={updatingMemberId === member.memberId}
+                                    disabled={updatingMemberId === selectedCategoryMember.memberId}
                                     className="h-4 w-4"
                                   />
-                                  <label
-                                    htmlFor={`${member.memberId}-${privilege}`}
-                                    className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"
-                                  >
-                                    <span>{member.userName}</span>
-                                    <Badge className={`border text-[10px] py-0 px-1 ${ROLE_COLORS[member.currentRole]}`}>
-                                      {getMilitaryRankLabel(member.currentRole)}
-                                    </Badge>
-                                  </label>
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
-
-              {!filteredMembers.length && (searchTerm || filterRole !== "ALL") ? (
-                <p className="text-sm text-slate-400">No members match your filters.</p>
-              ) : null}
 
               <div className="flex gap-2">
                 <Button
@@ -722,6 +1017,78 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
             </div>
           ) : (
             <p className="mt-3 text-xs text-slate-500">Only organization owners can change channel visibility.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-indigo-500/20 bg-slate-900/50">
+        <CardHeader>
+          <CardTitle className="text-indigo-100">Recent Privilege Changes</CardTitle>
+          <p className="mt-1 text-xs text-slate-400">Latest role and permission updates across this organization.</p>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-2 md:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-[11px] uppercase tracking-wide text-indigo-200">Change type</label>
+              <select
+                value={auditTypeFilter}
+                onChange={(event) => setAuditTypeFilter(event.target.value as AuditTypeFilter)}
+                className="w-full rounded-md border border-indigo-500/30 bg-slate-950 px-3 py-2 text-xs text-indigo-100"
+              >
+                <option value="ALL">All changes</option>
+                <option value="PERMISSIONS">Permissions only</option>
+                <option value="ROLES">Role changes only</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] uppercase tracking-wide text-indigo-200">Member</label>
+              <select
+                value={auditMemberFilter}
+                onChange={(event) => setAuditMemberFilter(event.target.value)}
+                className="w-full rounded-md border border-indigo-500/30 bg-slate-950 px-3 py-2 text-xs text-indigo-100"
+              >
+                <option value="ALL">All members</option>
+                {auditMemberOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => void loadAudit()} disabled={auditLoading} className="text-xs">
+                Refresh Audit
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportAuditCsv} className="text-xs">
+                Export CSV
+              </Button>
+            </div>
+          </div>
+
+          {auditLoading ? (
+            <p className="text-xs text-slate-400">Loading recent changes...</p>
+          ) : !filteredAuditEntries.length ? (
+            <p className="text-xs text-slate-500">No privilege changes match the selected filters.</p>
+          ) : (
+            filteredAuditEntries.map((entry) => (
+              <div key={entry.id} className="rounded-md border border-indigo-500/20 bg-slate-950/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-indigo-100">{entry.title}</p>
+                  <Badge className="border border-indigo-500/30 bg-indigo-500/10 text-[10px] text-indigo-200">
+                    {entry.type === "organization_member_privilege_updated" ? "Permission" : "Role"}
+                  </Badge>
+                </div>
+                {entry.body ? <p className="mt-1 text-xs text-slate-300">{entry.body}</p> : null}
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                  <span>{new Date(entry.createdAt).toLocaleString()}</span>
+                  {entry.targetUserName || entry.targetUserEmail ? (
+                    <span>
+                      Target: {entry.targetUserName || entry.targetUserEmail}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>

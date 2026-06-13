@@ -58,6 +58,53 @@ export const CAPABILITY_KEYS = [
 
 export type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
+export type FleetOwnerContribution = {
+  userId: string;
+  displayName: string;
+  starCitizenHandle: string | null;
+  quantity: number;
+  status: AssetStatus;
+};
+
+export type OrgFleetGroupedAsset = {
+  key: string;
+  kind: FleetAssetKind;
+  name: string;
+  manufacturer: string;
+  role: string;
+  size: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  owners: FleetOwnerContribution[];
+};
+
+export type OrganizationFleetView = {
+  organizationId: string;
+  organizationName: string;
+  organizationTag: string;
+  groupedShips: OrgFleetGroupedAsset[];
+  groupedVehicles: OrgFleetGroupedAsset[];
+  summary: FleetSummary;
+};
+
+export type OperationAttendeeAssetHighlight = {
+  requirement: string;
+  totalMatchedQuantity: number;
+  matchingOwners: Array<{
+    userId: string;
+    displayName: string;
+    starCitizenHandle: string | null;
+    assetName: string;
+    quantity: number;
+  }>;
+};
+
+export type OperationAttendeeCapabilityReport = {
+  attendingCount: number;
+  capabilityCounts: Record<CapabilityKey, number>;
+  requirementHighlights: OperationAttendeeAssetHighlight[];
+};
+
 function roleToCapabilities(role: string, kind: FleetAssetKind): CapabilityKey[] {
   const normalized = role.toUpperCase();
   if (kind === "vehicle") {
@@ -95,6 +142,10 @@ function roleToCapabilities(role: string, kind: FleetAssetKind): CapabilityKey[]
   };
 
   return map[normalized] || ["Support"];
+}
+
+export function getCapabilitiesForRole(role: string, kind: FleetAssetKind): CapabilityKey[] {
+  return roleToCapabilities(role, kind);
 }
 
 function normalizeAssetName(name: string): string {
@@ -199,6 +250,294 @@ export async function getUserFleet(userId: string) {
     vehicles,
     assets,
     summary: summarizeFleet(assets),
+  };
+}
+
+function buildOrgFleetGroupedAssets(
+  assets: FleetAsset[],
+  ownerMap: Map<string, { displayName: string; starCitizenHandle: string | null }>
+) {
+  const grouped = new Map<string, OrgFleetGroupedAsset>();
+
+  for (const asset of assets) {
+    const key = `${asset.kind}|${asset.name}|${asset.manufacturer}|${asset.role}|${asset.size}`;
+    const owner = ownerMap.get(asset.userId) || { displayName: "Unknown member", starCitizenHandle: null };
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        key,
+        kind: asset.kind,
+        name: asset.name,
+        manufacturer: asset.manufacturer,
+        role: asset.role,
+        size: asset.size,
+        totalQuantity: 0,
+        availableQuantity: 0,
+        owners: [],
+      });
+    }
+
+    const row = grouped.get(key)!;
+    row.totalQuantity += asset.quantity;
+    if (asset.status === AssetStatus.AVAILABLE) {
+      row.availableQuantity += asset.quantity;
+    }
+
+    row.owners.push({
+      userId: asset.userId,
+      displayName: owner.displayName,
+      starCitizenHandle: owner.starCitizenHandle,
+      quantity: asset.quantity,
+      status: asset.status,
+    });
+  }
+
+  const groupedAssets = Array.from(grouped.values());
+  groupedAssets.sort((a, b) => a.name.localeCompare(b.name));
+  return groupedAssets;
+}
+
+export async function getOrganizationFleetView(organizationId: string): Promise<OrganizationFleetView | null> {
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      id: true,
+      name: true,
+      tag: true,
+      members: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              starCitizenHandle: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!organization) {
+    return null;
+  }
+
+  const memberIds = organization.members.map((member) => member.userId);
+  if (!memberIds.length) {
+    return {
+      organizationId: organization.id,
+      organizationName: organization.name,
+      organizationTag: organization.tag,
+      groupedShips: [],
+      groupedVehicles: [],
+      summary: summarizeFleet([]),
+    };
+  }
+
+  const ownerMap = new Map(
+    organization.members.map((member) => [
+      member.userId,
+      {
+        displayName: member.user.name || member.user.email || "Unknown member",
+        starCitizenHandle: member.user.starCitizenHandle,
+      },
+    ])
+  );
+
+  const [ships, vehicles] = await Promise.all([
+    prisma.ship.findMany({ where: { userId: { in: memberIds } }, orderBy: [{ name: "asc" }, { createdAt: "asc" }] }),
+    prisma.groundVehicle.findMany({ where: { userId: { in: memberIds } }, orderBy: [{ name: "asc" }, { createdAt: "asc" }] }),
+  ]);
+
+  const assets = flattenFleet(ships, vehicles);
+  const grouped = buildOrgFleetGroupedAssets(assets, ownerMap);
+
+  return {
+    organizationId: organization.id,
+    organizationName: organization.name,
+    organizationTag: organization.tag,
+    groupedShips: grouped.filter((asset) => asset.kind === "ship"),
+    groupedVehicles: grouped.filter((asset) => asset.kind === "vehicle"),
+    summary: summarizeFleet(assets),
+  };
+}
+
+function requirementMatchesAsset(requirement: string, asset: FleetAsset) {
+  const normalizedRequirement = requirement.trim().toLowerCase();
+  const normalizedRole = asset.role.toLowerCase();
+  const normalizedName = asset.name.toLowerCase();
+  if (!normalizedRequirement) return false;
+
+  if (normalizedName.includes(normalizedRequirement) || normalizedRole.includes(normalizedRequirement)) {
+    return true;
+  }
+
+  const capabilities = roleToCapabilities(asset.role, asset.kind).map((capability) => capability.toLowerCase());
+  if (normalizedRequirement.includes("gunship") || normalizedRequirement.includes("combat")) {
+    return capabilities.includes("combat");
+  }
+  if (normalizedRequirement.includes("cargo") || normalizedRequirement.includes("logistics")) {
+    return capabilities.includes("cargo") || capabilities.includes("logistics");
+  }
+  if (normalizedRequirement.includes("medical")) {
+    return capabilities.includes("medical");
+  }
+  if (normalizedRequirement.includes("capital")) {
+    return capabilities.includes("capital");
+  }
+
+  return capabilities.some((capability) => normalizedRequirement.includes(capability));
+}
+
+function parseOperationRequirements(value: string | null | undefined) {
+  if (!value) return [];
+  return value
+    .split(/[\n,]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+export async function getOperationAttendeeCapabilityReport(operationId: string): Promise<OperationAttendeeCapabilityReport> {
+  const operation = await prisma.operation.findUnique({
+    where: { id: operationId },
+    select: {
+      requiredShips: true,
+      requiredGroundVehicles: true,
+      rsvps: {
+        where: { status: "GOING" },
+        select: {
+          userId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              starCitizenHandle: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!operation) {
+    return {
+      attendingCount: 0,
+      capabilityCounts: {
+        Combat: 0,
+        Cargo: 0,
+        Mining: 0,
+        Salvage: 0,
+        Medical: 0,
+        Refuel: 0,
+        Repair: 0,
+        Exploration: 0,
+        Recon: 0,
+        Dropship: 0,
+        "Ground Combat": 0,
+        Logistics: 0,
+        Capital: 0,
+        Racing: 0,
+        Support: 0,
+      },
+      requirementHighlights: [],
+    };
+  }
+
+  const attendeeIds = operation.rsvps.map((rsvp) => rsvp.userId);
+  const ownerMap = new Map(
+    operation.rsvps.map((rsvp) => [
+      rsvp.userId,
+      {
+        displayName: rsvp.user.name || rsvp.user.email || "Unknown member",
+        starCitizenHandle: rsvp.user.starCitizenHandle,
+      },
+    ])
+  );
+
+  if (!attendeeIds.length) {
+    return {
+      attendingCount: 0,
+      capabilityCounts: {
+        Combat: 0,
+        Cargo: 0,
+        Mining: 0,
+        Salvage: 0,
+        Medical: 0,
+        Refuel: 0,
+        Repair: 0,
+        Exploration: 0,
+        Recon: 0,
+        Dropship: 0,
+        "Ground Combat": 0,
+        Logistics: 0,
+        Capital: 0,
+        Racing: 0,
+        Support: 0,
+      },
+      requirementHighlights: [],
+    };
+  }
+
+  const [ships, vehicles] = await Promise.all([
+    prisma.ship.findMany({ where: { userId: { in: attendeeIds } } }),
+    prisma.groundVehicle.findMany({ where: { userId: { in: attendeeIds } } }),
+  ]);
+
+  const assets = flattenFleet(ships, vehicles);
+  const capabilityCounts: Record<CapabilityKey, number> = {
+    Combat: 0,
+    Cargo: 0,
+    Mining: 0,
+    Salvage: 0,
+    Medical: 0,
+    Refuel: 0,
+    Repair: 0,
+    Exploration: 0,
+    Recon: 0,
+    Dropship: 0,
+    "Ground Combat": 0,
+    Logistics: 0,
+    Capital: 0,
+    Racing: 0,
+    Support: 0,
+  };
+
+  for (const asset of assets) {
+    for (const capability of roleToCapabilities(asset.role, asset.kind)) {
+      capabilityCounts[capability] += asset.quantity;
+    }
+  }
+
+  const requirements = [
+    ...parseOperationRequirements(operation.requiredShips),
+    ...parseOperationRequirements(operation.requiredGroundVehicles),
+  ];
+
+  const requirementHighlights = requirements.map((requirement) => {
+    const matches = assets.filter((asset) => requirementMatchesAsset(requirement, asset));
+    const matchingOwners = matches.map((asset) => {
+      const owner = ownerMap.get(asset.userId) || { displayName: "Unknown member", starCitizenHandle: null };
+      return {
+        userId: asset.userId,
+        displayName: owner.displayName,
+        starCitizenHandle: owner.starCitizenHandle,
+        assetName: asset.name,
+        quantity: asset.quantity,
+      };
+    });
+
+    return {
+      requirement,
+      totalMatchedQuantity: matchingOwners.reduce((sum, owner) => sum + owner.quantity, 0),
+      matchingOwners,
+    };
+  });
+
+  return {
+    attendingCount: attendeeIds.length,
+    capabilityCounts,
+    requirementHighlights,
   };
 }
 

@@ -17,6 +17,17 @@ const ROLE_POWER: Record<OrganizationMemberRole, number> = {
 
 type AppPrivilegeUpdateInput = Partial<Record<AppPrivilegeAction, boolean>>;
 
+export type PrivilegeAuditItem = {
+  id: string;
+  type: "organization_member_privilege_updated" | "organization_member_role_updated";
+  title: string;
+  body: string | null;
+  createdAt: Date;
+  targetUserId: string | null;
+  targetUserName: string | null;
+  targetUserEmail: string | null;
+};
+
 /**
  * Get all members of an organization with their current roles and permissions
  */
@@ -79,6 +90,7 @@ export async function updateMemberAppPrivileges(
   const member = await prisma.organizationMember.findUnique({
     where: { id: memberId },
     include: {
+      appPrivileges: true,
       user: {
         select: { id: true, name: true, email: true },
       },
@@ -118,19 +130,90 @@ export async function updateMemberAppPrivileges(
     throw new ValidationError("No app privileges were provided");
   }
 
-  await prisma.organizationMemberAppPrivilege.upsert({
-    where: { organizationMemberId: member.id },
-    create: {
-      organizationMemberId: member.id,
-      ...data,
-    },
-    update: data,
+  const changedPrivileges = APP_PRIVILEGE_ACTIONS.filter((action) => {
+    if (!(action in data)) return false;
+    const previous = member.appPrivileges?.[action] ?? null;
+    const next = data[action];
+    return previous !== next;
+  });
+
+  if (!changedPrivileges.length) {
+    throw new ValidationError("No app privilege changes detected");
+  }
+
+  const actor = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { name: true, email: true },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.organizationMemberAppPrivilege.upsert({
+      where: { organizationMemberId: member.id },
+      create: {
+        organizationMemberId: member.id,
+        ...data,
+      },
+      update: data,
+    });
+
+    for (const action of changedPrivileges) {
+      const nextValue = data[action] === true;
+      await tx.activityFeedItem.create({
+        data: {
+          type: "organization_member_privilege_updated",
+          title: `${member.user.name || member.user.email || "Member"}: ${action}`,
+          body: `${actor?.name || actor?.email || "A leader"} set ${action} to ${nextValue ? "allowed" : "denied"}.`,
+          userId: member.userId,
+          organizationId,
+        },
+      });
+    }
   });
 
   return {
     success: true,
     message: `${member.user.name || member.user.email || "Member"} app privileges updated.`,
   };
+}
+
+export async function getPrivilegeAuditLog(
+  actorId: string,
+  organizationId: string,
+  take = 12
+): Promise<PrivilegeAuditItem[]> {
+  if (!(await isOrganizationCommander(actorId, organizationId))) {
+    throw new ForbiddenError("Only commanders can view privilege audit logs");
+  }
+
+  const items = await prisma.activityFeedItem.findMany({
+    where: {
+      organizationId,
+      type: {
+        in: ["organization_member_privilege_updated", "organization_member_role_updated"],
+      },
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+
+  return items.map((item) => ({
+    id: item.id,
+    type: item.type as "organization_member_privilege_updated" | "organization_member_role_updated",
+    title: item.title,
+    body: item.body,
+    createdAt: item.createdAt,
+    targetUserId: item.userId,
+    targetUserName: item.user?.name || null,
+    targetUserEmail: item.user?.email || null,
+  }));
 }
 
 /**
