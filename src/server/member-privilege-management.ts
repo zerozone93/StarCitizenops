@@ -44,6 +44,9 @@ export async function getMembersForPrivilegeManagement(
     where: { organizationId },
     include: {
       appPrivileges: true,
+      customRank: {
+        select: { id: true, name: true },
+      },
       user: {
         select: { id: true, name: true, email: true, image: true, starCitizenHandle: true },
       },
@@ -59,6 +62,8 @@ export async function getMembersForPrivilegeManagement(
     userImage: m.user.image,
     starCitizenHandle: m.user.starCitizenHandle,
     currentRole: m.role,
+    customRankId: m.customRank?.id || null,
+    customRankName: m.customRank?.name || null,
     joinedAt: m.joinedAt,
     appPrivileges: {
       editOrganization: m.appPrivileges?.editOrganization ?? null,
@@ -214,6 +219,385 @@ export async function getPrivilegeAuditLog(
     targetUserName: item.user?.name || null,
     targetUserEmail: item.user?.email || null,
   }));
+}
+
+export type CustomRankTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  baseRole: OrganizationMemberRole;
+  position: number;
+  assignedMemberCount: number;
+  appPrivileges: Record<AppPrivilegeAction, boolean | null>;
+};
+
+type CustomRankUpsertInput = {
+  name: string;
+  description?: string | null;
+  baseRole: OrganizationMemberRole;
+  position?: number;
+  appPrivileges?: AppPrivilegeUpdateInput;
+};
+
+type CustomRankUpdateInput = {
+  name?: string;
+  description?: string | null;
+  baseRole?: OrganizationMemberRole;
+  position?: number;
+  appPrivileges?: AppPrivilegeUpdateInput;
+};
+
+async function assertCustomRankManager(actorId: string, organizationId: string) {
+  const [isCommander, isAdmin] = await Promise.all([
+    isOrganizationCommander(actorId, organizationId),
+    isSiteAdmin(actorId),
+  ]);
+
+  if (!isCommander && !isAdmin) {
+    throw new ForbiddenError("Only commanders and above can manage custom rank structures");
+  }
+
+  return { isAdmin };
+}
+
+function mapRankPrivileges(
+  appPrivileges: Partial<Record<AppPrivilegeAction, boolean | null>> | null | undefined
+) {
+  return {
+    editOrganization: appPrivileges?.editOrganization ?? null,
+    inviteMembers: appPrivileges?.inviteMembers ?? null,
+    createOperation: appPrivileges?.createOperation ?? null,
+    editOperation: appPrivileges?.editOperation ?? null,
+    assignRoles: appPrivileges?.assignRoles ?? null,
+    inviteOrganizations: appPrivileges?.inviteOrganizations ?? null,
+    viewPrivateOperations: appPrivileges?.viewPrivateOperations ?? null,
+    postAfterActionReports: appPrivileges?.postAfterActionReports ?? null,
+    manageChannels: appPrivileges?.manageChannels ?? null,
+  } satisfies Record<AppPrivilegeAction, boolean | null>;
+}
+
+function extractPrivilegeUpdates(updates?: AppPrivilegeUpdateInput) {
+  const data: Record<string, boolean | null> = {};
+  for (const action of APP_PRIVILEGE_ACTIONS) {
+    if (typeof updates?.[action] === "boolean") {
+      data[action] = updates[action] ?? null;
+    }
+  }
+  return data;
+}
+
+export async function listCustomRankTemplates(
+  actorId: string,
+  organizationId: string
+): Promise<CustomRankTemplate[]> {
+  await assertCustomRankManager(actorId, organizationId);
+
+  const ranks = await prisma.organizationCustomRank.findMany({
+    where: { organizationId },
+    include: {
+      appPrivileges: true,
+      _count: {
+        select: { members: true },
+      },
+    },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  });
+
+  return ranks.map((rank) => ({
+    id: rank.id,
+    name: rank.name,
+    description: rank.description,
+    baseRole: rank.baseRole,
+    position: rank.position,
+    assignedMemberCount: rank._count.members,
+    appPrivileges: mapRankPrivileges(rank.appPrivileges),
+  }));
+}
+
+export async function createCustomRankTemplate(
+  actorId: string,
+  organizationId: string,
+  input: CustomRankUpsertInput
+) {
+  await assertCustomRankManager(actorId, organizationId);
+
+  const name = input.name.trim();
+  if (!name) {
+    throw new ValidationError("Rank name is required");
+  }
+
+  const privilegeData = extractPrivilegeUpdates(input.appPrivileges);
+
+  const created = await prisma.organizationCustomRank.create({
+    data: {
+      organizationId,
+      createdById: actorId,
+      name,
+      description: input.description?.trim() || null,
+      baseRole: input.baseRole,
+      position: input.position ?? 0,
+      appPrivileges: {
+        create: privilegeData,
+      },
+    },
+    include: {
+      appPrivileges: true,
+      _count: {
+        select: { members: true },
+      },
+    },
+  });
+
+  await prisma.activityFeedItem.create({
+    data: {
+      type: "organization_member_privilege_updated",
+      title: `Custom rank created: ${created.name}`,
+      body: `Leadership created rank template ${created.name} (${created.baseRole}).`,
+      userId: actorId,
+      organizationId,
+    },
+  });
+
+  return {
+    success: true,
+    message: `Created custom rank ${created.name}.`,
+    rank: {
+      id: created.id,
+      name: created.name,
+      description: created.description,
+      baseRole: created.baseRole,
+      position: created.position,
+      assignedMemberCount: created._count.members,
+      appPrivileges: mapRankPrivileges(created.appPrivileges),
+    } satisfies CustomRankTemplate,
+  };
+}
+
+export async function updateCustomRankTemplate(
+  actorId: string,
+  organizationId: string,
+  rankId: string,
+  input: CustomRankUpdateInput
+) {
+  await assertCustomRankManager(actorId, organizationId);
+
+  const existing = await prisma.organizationCustomRank.findUnique({
+    where: { id: rankId },
+  });
+
+  if (!existing || existing.organizationId !== organizationId) {
+    throw new NotFoundError("Rank template not found");
+  }
+
+  const data: {
+    name?: string;
+    description?: string | null;
+    baseRole?: OrganizationMemberRole;
+    position?: number;
+  } = {};
+
+  if (typeof input.name === "string") {
+    const trimmedName = input.name.trim();
+    if (!trimmedName) {
+      throw new ValidationError("Rank name cannot be empty");
+    }
+    data.name = trimmedName;
+  }
+
+  if (input.description !== undefined) {
+    data.description = input.description?.trim() || null;
+  }
+
+  if (input.baseRole) {
+    data.baseRole = input.baseRole;
+  }
+
+  if (typeof input.position === "number") {
+    data.position = input.position;
+  }
+
+  const privilegeData = extractPrivilegeUpdates(input.appPrivileges);
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const rank = await tx.organizationCustomRank.update({
+      where: { id: rankId },
+      data,
+      include: {
+        appPrivileges: true,
+        _count: {
+          select: { members: true },
+        },
+      },
+    });
+
+    if (Object.keys(privilegeData).length) {
+      await tx.organizationCustomRankAppPrivilege.upsert({
+        where: { organizationCustomRankId: rankId },
+        create: {
+          organizationCustomRankId: rankId,
+          ...privilegeData,
+        },
+        update: privilegeData,
+      });
+    }
+
+    return rank;
+  });
+
+  await prisma.activityFeedItem.create({
+    data: {
+      type: "organization_member_privilege_updated",
+      title: `Custom rank updated: ${updated.name}`,
+      body: `Leadership updated rank template ${updated.name}.`,
+      userId: actorId,
+      organizationId,
+    },
+  });
+
+  return {
+    success: true,
+    message: `Updated custom rank ${updated.name}.`,
+  };
+}
+
+export async function deleteCustomRankTemplate(
+  actorId: string,
+  organizationId: string,
+  rankId: string
+) {
+  await assertCustomRankManager(actorId, organizationId);
+
+  const existing = await prisma.organizationCustomRank.findUnique({
+    where: { id: rankId },
+    include: {
+      _count: {
+        select: { members: true },
+      },
+    },
+  });
+
+  if (!existing || existing.organizationId !== organizationId) {
+    throw new NotFoundError("Rank template not found");
+  }
+
+  await prisma.organizationCustomRank.delete({ where: { id: rankId } });
+
+  await prisma.activityFeedItem.create({
+    data: {
+      type: "organization_member_privilege_updated",
+      title: `Custom rank removed: ${existing.name}`,
+      body: `${existing._count.members} member(s) were detached from this template.`,
+      userId: actorId,
+      organizationId,
+    },
+  });
+
+  return {
+    success: true,
+    message: `Deleted custom rank ${existing.name}.`,
+  };
+}
+
+export async function applyCustomRankTemplateToMembers(
+  actorId: string,
+  organizationId: string,
+  rankId: string,
+  memberIds: string[]
+) {
+  const { isAdmin } = await assertCustomRankManager(actorId, organizationId);
+
+  if (!memberIds.length) {
+    throw new ValidationError("Select at least one member to apply a rank");
+  }
+
+  const rank = await prisma.organizationCustomRank.findUnique({
+    where: { id: rankId },
+    include: { appPrivileges: true },
+  });
+
+  if (!rank || rank.organizationId !== organizationId) {
+    throw new NotFoundError("Rank template not found");
+  }
+
+  const [members, actorMembership] = await Promise.all([
+    prisma.organizationMember.findMany({
+      where: {
+        organizationId,
+        id: { in: Array.from(new Set(memberIds)) },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    }),
+    prisma.organizationMember.findUnique({
+      where: { userId_organizationId: { userId: actorId, organizationId } },
+    }),
+  ]);
+
+  if (members.length !== Array.from(new Set(memberIds)).length) {
+    throw new ValidationError("Some selected members no longer exist in this organization");
+  }
+
+  if (!isAdmin && !actorMembership) {
+    throw new ForbiddenError("You must be a member of this organization");
+  }
+
+  if (!isAdmin && actorMembership) {
+    for (const member of members) {
+      if (ROLE_POWER[member.role] >= ROLE_POWER[actorMembership.role] && member.userId !== actorId) {
+        throw new ForbiddenError("You cannot update one or more members with equal or higher rank");
+      }
+    }
+
+    if (ROLE_POWER[rank.baseRole] >= ROLE_POWER[actorMembership.role]) {
+      throw new ForbiddenError("You cannot apply a rank template with a role equal to or higher than your own");
+    }
+  }
+
+  const privilegeData = mapRankPrivileges(rank.appPrivileges);
+
+  await prisma.$transaction(async (tx) => {
+    for (const member of members) {
+      await tx.organizationMember.update({
+        where: { id: member.id },
+        data: {
+          role: rank.baseRole,
+          title: rank.name,
+          customRankId: rank.id,
+        },
+      });
+
+      await tx.organizationMemberAppPrivilege.upsert({
+        where: { organizationMemberId: member.id },
+        create: {
+          organizationMemberId: member.id,
+          ...privilegeData,
+        },
+        update: privilegeData,
+      });
+
+      await tx.activityFeedItem.create({
+        data: {
+          type: "organization_member_role_updated",
+          title: `${member.user.name || member.user.email || "Member"} assigned rank ${rank.name}`,
+          body: `Role set to ${rank.baseRole} with template privileges applied.`,
+          userId: member.userId,
+          organizationId,
+        },
+      });
+    }
+  });
+
+  return {
+    success: true,
+    message: `Applied ${rank.name} to ${members.length} member(s).`,
+  };
 }
 
 /**

@@ -8,6 +8,7 @@ const primaryNavItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/operations", label: "Operations" },
   { href: "/organizations/my", label: "My Org" },
+  { href: "/calendar", label: "Calendar" },
   { href: "/fleet", label: "Fleet" },
   { href: "/chat", label: "Chat" },
 ];

@@ -18,7 +18,19 @@ type Member = {
   userImage: string | null;
   starCitizenHandle: string | null;
   currentRole: OrganizationMemberRole;
+  customRankId: string | null;
+  customRankName: string | null;
   joinedAt: string;
+  appPrivileges: Record<AppPrivilegeAction, boolean | null>;
+};
+
+type CustomRankTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  baseRole: OrganizationMemberRole;
+  position: number;
+  assignedMemberCount: number;
   appPrivileges: Record<AppPrivilegeAction, boolean | null>;
 };
 
@@ -80,6 +92,18 @@ const PRIVILEGE_CATEGORIES: Record<string, AppPrivilegeAction[]> = {
   "Operations & Events": ["createOperation", "editOperation", "postAfterActionReports"],
   "Organization Management": ["editOrganization", "inviteMembers", "inviteOrganizations"],
   "Member Management": ["assignRoles"],
+};
+
+const EMPTY_APP_PRIVILEGES: Record<AppPrivilegeAction, boolean | null> = {
+  editOrganization: null,
+  inviteMembers: null,
+  createOperation: null,
+  editOperation: null,
+  assignRoles: null,
+  inviteOrganizations: null,
+  viewPrivateOperations: null,
+  postAfterActionReports: null,
+  manageChannels: null,
 };
 
 type Channel = {
@@ -186,13 +210,16 @@ function getRolePermissionDetails(role: OrganizationMemberRole): {
 
 export function MemberPrivilegeManager({ organizationId, userRole, userId }: MemberPrivilegeManagerProps) {
   const [members, setMembers] = useState<Member[]>([]);
+  const [customRanks, setCustomRanks] = useState<CustomRankTemplate[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [auditEntries, setAuditEntries] = useState<PrivilegeAuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [customRanksLoading, setCustomRanksLoading] = useState(true);
   const [channelsLoading, setChannelsLoading] = useState(true);
   const [auditLoading, setAuditLoading] = useState(true);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [updatingChannelId, setUpdatingChannelId] = useState<string | null>(null);
+  const [updatingCustomRanks, setUpdatingCustomRanks] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [toasts, setToasts] = useState<LocalToast[]>([]);
@@ -202,6 +229,13 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
   const [newChannelTitle, setNewChannelTitle] = useState("");
   const [newChannelDescription, setNewChannelDescription] = useState("");
   const [newChannelVisibility, setNewChannelVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [newRankName, setNewRankName] = useState("");
+  const [newRankDescription, setNewRankDescription] = useState("");
+  const [newRankBaseRole, setNewRankBaseRole] = useState<OrganizationMemberRole>("MEMBER");
+  const [newRankPosition, setNewRankPosition] = useState<number>(0);
+  const [newRankPrivileges, setNewRankPrivileges] = useState<Record<AppPrivilegeAction, boolean | null>>(EMPTY_APP_PRIVILEGES);
+  const [selectedRankTemplateId, setSelectedRankTemplateId] = useState<string>("");
+  const [selectedBulkMemberIds, setSelectedBulkMemberIds] = useState<string[]>([]);
   const [auditTypeFilter, setAuditTypeFilter] = useState<AuditTypeFilter>("ALL");
   const [auditMemberFilter, setAuditMemberFilter] = useState<string>("ALL");
 
@@ -210,6 +244,7 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
   const canManageChannels = userRole === "OWNER" || selfMember?.appPrivileges?.manageChannels === true;
 
   const basePath = `/api/organizations/${organizationId}/members/privileges`;
+  const rankPath = `${basePath}/ranks`;
   const auditPath = `/api/organizations/${organizationId}/members/privileges/audit`;
   const channelsPath = `/api/organizations/${organizationId}/social-channels`;
 
@@ -244,6 +279,29 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
     });
   }, [members]);
 
+  useEffect(() => {
+    if (!members.length) {
+      setSelectedBulkMemberIds([]);
+      return;
+    }
+
+    setSelectedBulkMemberIds((prev) => prev.filter((memberId) => members.some((member) => member.memberId === memberId)));
+  }, [members]);
+
+  useEffect(() => {
+    if (!customRanks.length) {
+      setSelectedRankTemplateId("");
+      return;
+    }
+
+    setSelectedRankTemplateId((prev) => {
+      if (prev && customRanks.some((rank) => rank.id === prev)) {
+        return prev;
+      }
+      return customRanks[0].id;
+    });
+  }, [customRanks]);
+
   const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
@@ -276,6 +334,22 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
       setChannelsLoading(false);
     }
   }, [channelsPath]);
+
+  const loadCustomRanks = useCallback(async () => {
+    try {
+      setCustomRanksLoading(true);
+      const response = await fetch(rankPath, { cache: "no-store" });
+      if (!response.ok) {
+        setCustomRanks([]);
+        return;
+      }
+
+      const data = (await response.json()) as CustomRankTemplate[];
+      setCustomRanks(data);
+    } finally {
+      setCustomRanksLoading(false);
+    }
+  }, [rankPath]);
 
   const loadAudit = useCallback(async () => {
     try {
@@ -369,6 +443,140 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
     pushToast(`Exported ${filteredAuditEntries.length} audit entries to CSV.`);
+  };
+
+  const toggleNewRankPrivilege = (privilege: AppPrivilegeAction, enabled: boolean) => {
+    setNewRankPrivileges((prev) => ({
+      ...prev,
+      [privilege]: enabled ? true : null,
+    }));
+  };
+
+  const handleCreateCustomRank = async () => {
+    if (!newRankName.trim()) {
+      setError("Rank name is required.");
+      return;
+    }
+
+    try {
+      setUpdatingCustomRanks(true);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch(rankPath, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newRankName,
+          description: newRankDescription,
+          baseRole: newRankBaseRole,
+          position: newRankPosition,
+          appPrivileges: newRankPrivileges,
+        }),
+      });
+
+      const payload = (await response.json()) as { success?: boolean; message?: string } | ApiErrorPayload;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(payload as ApiErrorPayload, "Failed to create custom rank"));
+      }
+
+      setNewRankName("");
+      setNewRankDescription("");
+      setNewRankBaseRole("MEMBER");
+      setNewRankPosition(0);
+      setNewRankPrivileges(EMPTY_APP_PRIVILEGES);
+      setSuccess((payload as { message: string }).message || "Custom rank created.");
+      pushToast((payload as { message: string }).message || "Custom rank created.");
+
+      await loadCustomRanks();
+      void loadAudit();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create custom rank");
+    } finally {
+      setUpdatingCustomRanks(false);
+    }
+  };
+
+  const handleDeleteCustomRank = async (rankId: string, rankName: string) => {
+    if (!confirm(`Delete rank template ${rankName}?`)) {
+      return;
+    }
+
+    try {
+      setUpdatingCustomRanks(true);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch(rankPath, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rankId }),
+      });
+
+      const payload = (await response.json()) as { success?: boolean; message?: string } | ApiErrorPayload;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(payload as ApiErrorPayload, "Failed to delete custom rank"));
+      }
+
+      setSuccess((payload as { message: string }).message || "Custom rank removed.");
+      pushToast((payload as { message: string }).message || "Custom rank removed.");
+
+      if (selectedRankTemplateId === rankId) {
+        setSelectedRankTemplateId("");
+      }
+
+      await Promise.all([loadCustomRanks(), loadMembers()]);
+      void loadAudit();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete custom rank");
+    } finally {
+      setUpdatingCustomRanks(false);
+    }
+  };
+
+  const handleApplyCustomRank = async () => {
+    if (!selectedRankTemplateId) {
+      setError("Select a custom rank template first.");
+      return;
+    }
+
+    if (!selectedBulkMemberIds.length) {
+      setError("Select at least one member for bulk assignment.");
+      return;
+    }
+
+    try {
+      setUpdatingCustomRanks(true);
+      setError(null);
+      setSuccess(null);
+
+      const response = await fetch(rankPath, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "apply",
+          rankId: selectedRankTemplateId,
+          memberIds: selectedBulkMemberIds,
+        }),
+      });
+
+      const payload = (await response.json()) as { success?: boolean; message?: string } | ApiErrorPayload;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(payload as ApiErrorPayload, "Failed to apply rank template"));
+      }
+
+      setSuccess((payload as { message: string }).message || "Rank template applied.");
+      pushToast((payload as { message: string }).message || "Rank template applied.");
+      await Promise.all([loadMembers(), loadCustomRanks()]);
+      void loadAudit();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to apply rank template");
+    } finally {
+      setUpdatingCustomRanks(false);
+    }
   };
 
   const handleRoleChange = async (memberId: string, newRole: string) => {
@@ -635,12 +843,13 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
 
     const timer = setTimeout(() => {
       void loadMembers();
+      void loadCustomRanks();
       void loadChannels();
       void loadAudit();
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [canManage, loadAudit, loadChannels, loadMembers]);
+  }, [canManage, loadAudit, loadChannels, loadCustomRanks, loadMembers]);
 
   const selectedMember = members.find((member) => member.memberId === selectedMemberId) || members[0] || null;
   const selectedMemberIdValue = selectedMember?.memberId || "";
@@ -819,6 +1028,224 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
         </CardContent>
       </Card>
 
+      <Card className="border-violet-500/20 bg-slate-900/50">
+        <CardHeader>
+          <CardTitle className="text-violet-100">Custom Rank Structures</CardTitle>
+          <p className="mt-1 text-xs text-slate-400">
+            Build your own rank templates with privilege bundles, then apply them to multiple members in one action.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="rounded-lg border border-violet-500/20 bg-slate-950/50 p-4">
+            <p className="text-sm font-semibold text-violet-100">Create rank template</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <input
+                value={newRankName}
+                onChange={(event) => setNewRankName(event.target.value)}
+                placeholder="Rank name (example: Strike Lead)"
+                className="rounded-md border border-violet-500/30 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                maxLength={60}
+              />
+              <select
+                value={newRankBaseRole}
+                onChange={(event) => setNewRankBaseRole(event.target.value as OrganizationMemberRole)}
+                className="rounded-md border border-violet-500/30 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+              >
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={`new-rank-role-${role}`} value={role}>
+                    Base role: {getMilitaryRankLabel(role)}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={newRankDescription}
+                onChange={(event) => setNewRankDescription(event.target.value)}
+                placeholder="Short description (optional)"
+                className="rounded-md border border-violet-500/30 bg-slate-900 px-3 py-2 text-sm text-slate-100 md:col-span-2"
+                maxLength={240}
+              />
+              <input
+                type="number"
+                min={0}
+                max={999}
+                value={newRankPosition}
+                onChange={(event) => setNewRankPosition(Number(event.target.value) || 0)}
+                className="rounded-md border border-violet-500/30 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                placeholder="Display order"
+              />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {Object.entries(PRIVILEGE_CATEGORIES).map(([category, privileges]) => (
+                <div key={`template-${category}`} className="rounded-md border border-violet-500/20 bg-slate-900/40 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-violet-200">{category}</p>
+                  <div className="space-y-2">
+                    {privileges.map((privilege) => (
+                      <label
+                        key={`template-privilege-${privilege}`}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-700/60 bg-slate-950/60 px-3 py-2"
+                      >
+                        <span className="text-xs text-slate-200">{APP_PRIVILEGE_LABELS[privilege]}</span>
+                        <Checkbox
+                          checked={newRankPrivileges[privilege] === true}
+                          onCheckedChange={(checked) => toggleNewRankPrivilege(privilege, checked === true)}
+                          className="h-4 w-4"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={() => void handleCreateCustomRank()}
+                disabled={updatingCustomRanks}
+              >
+                Create rank template
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setNewRankName("");
+                  setNewRankDescription("");
+                  setNewRankBaseRole("MEMBER");
+                  setNewRankPosition(0);
+                  setNewRankPrivileges(EMPTY_APP_PRIVILEGES);
+                }}
+                disabled={updatingCustomRanks}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-violet-500/20 bg-slate-950/50 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-violet-100">Saved rank templates</p>
+              <Button variant="outline" size="sm" onClick={() => void loadCustomRanks()} disabled={customRanksLoading}>
+                Refresh templates
+              </Button>
+            </div>
+
+            {customRanksLoading ? (
+              <p className="mt-3 text-xs text-slate-400">Loading custom ranks...</p>
+            ) : !customRanks.length ? (
+              <p className="mt-3 text-xs text-slate-500">No custom rank templates yet.</p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {customRanks.map((rank) => (
+                  <div key={rank.id} className="rounded-md border border-violet-500/20 bg-violet-500/5 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-violet-100">{rank.name}</p>
+                        <p className="text-xs text-slate-300">
+                          Base role: {getMilitaryRankLabel(rank.baseRole)} · Assigned: {rank.assignedMemberCount}
+                        </p>
+                        {rank.description ? <p className="mt-1 text-xs text-slate-400">{rank.description}</p> : null}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => void handleDeleteCustomRank(rank.id, rank.name)}
+                        disabled={updatingCustomRanks}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-violet-500/20 bg-slate-950/50 p-4">
+            <p className="text-sm font-semibold text-violet-100">Bulk assign rank template</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-[11px] uppercase tracking-wide text-violet-200">Template</label>
+                <select
+                  value={selectedRankTemplateId}
+                  onChange={(event) => setSelectedRankTemplateId(event.target.value)}
+                  className="w-full rounded-md border border-violet-500/30 bg-slate-900 px-3 py-2 text-sm text-slate-100"
+                >
+                  {!customRanks.length ? <option value="">No templates available</option> : null}
+                  {customRanks.map((rank) => (
+                    <option key={`bulk-rank-${rank.id}`} value={rank.id}>
+                      {rank.name} ({getMilitaryRankLabel(rank.baseRole)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedBulkMemberIds(members.map((member) => member.memberId))}
+                  disabled={!members.length}
+                >
+                  Select all
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedBulkMemberIds([])}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            <div className="mt-3 max-h-52 space-y-2 overflow-y-auto rounded-md border border-slate-700/60 bg-slate-900/40 p-2">
+              {members.map((member) => {
+                const checked = selectedBulkMemberIds.includes(member.memberId);
+                return (
+                  <label
+                    key={`bulk-member-${member.memberId}`}
+                    className="flex items-center justify-between gap-3 rounded-md border border-slate-700/60 bg-slate-950/60 px-3 py-2"
+                  >
+                    <span className="text-xs text-slate-200">
+                      {member.userName} · {getMilitaryRankLabel(member.currentRole)}
+                      {member.customRankName ? ` · ${member.customRankName}` : ""}
+                    </span>
+                    <Checkbox
+                      checked={checked}
+                      onCheckedChange={(next) =>
+                        setSelectedBulkMemberIds((prev) => {
+                          if (next === true) {
+                            if (prev.includes(member.memberId)) return prev;
+                            return [...prev, member.memberId];
+                          }
+                          return prev.filter((id) => id !== member.memberId);
+                        })
+                      }
+                      className="h-4 w-4"
+                    />
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-400">Selected members: {selectedBulkMemberIds.length}</p>
+              <Button
+                type="button"
+                onClick={() => void handleApplyCustomRank()}
+                disabled={updatingCustomRanks || !customRanks.length || !selectedBulkMemberIds.length}
+              >
+                Apply template to selected members
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Traditional Member Management Section */}
       <Card className="border-cyan-500/20 bg-slate-900/50">
         <CardHeader>
@@ -844,7 +1271,7 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
                   >
                     {members.map((member) => (
                       <option key={member.memberId} value={member.memberId}>
-                        {member.userName} - {getMilitaryRankLabel(member.currentRole)}
+                        {member.userName} - {getMilitaryRankLabel(member.currentRole)}{member.customRankName ? ` (${member.customRankName})` : ""}
                       </option>
                     ))}
                   </select>
@@ -869,6 +1296,11 @@ export function MemberPrivilegeManager({ organizationId, userRole, userId }: Mem
 
                       <div className="flex items-center gap-2">
                         <Badge className={`border ${ROLE_COLORS[selectedMember.currentRole]}`}>{getMilitaryRankLabel(selectedMember.currentRole)}</Badge>
+                        {selectedMember.customRankName ? (
+                          <Badge className="border border-violet-500/30 bg-violet-500/10 text-violet-200">
+                            {selectedMember.customRankName}
+                          </Badge>
+                        ) : null}
                         <Button
                           variant="ghost"
                           size="sm"

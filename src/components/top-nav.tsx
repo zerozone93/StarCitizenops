@@ -30,6 +30,9 @@ export async function TopNav({ title, subtitle }: TopNavProps) {
               <Link className="rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-1.5 text-center text-cyan-100 hover:bg-cyan-300/20" href="/ai-planner">
                 AI
               </Link>
+              <Link className="rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-1.5 text-center text-cyan-100 hover:bg-cyan-300/20" href="/calendar">
+                Calendar
+              </Link>
               <Link
                 className="rounded-lg border border-cyan-300/35 bg-cyan-400/10 px-3 py-1.5 text-center text-cyan-100 transition-colors hover:bg-cyan-300/20"
                 href="/chat"

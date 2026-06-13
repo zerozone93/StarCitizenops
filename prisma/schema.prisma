@@ -295,12 +295,19 @@ model User {
   following          UserFollow[]              @relation("UserFollowSource")
   conversationsCreated Conversation[]
   conversationMemberships ConversationParticipant[]
+  conversationReadStates ConversationReadState[]
+  channelAccesses    ConversationChannelAccess[] @relation("ConversationChannelAccessUser")
+  channelAccessGrants ConversationChannelAccess[] @relation("ConversationChannelAccessGrantedBy")
   sentMessages       Message[]
+  pollsCreated       Poll[]
+  pollVotes          PollVote[]
+  conversationGroupsCreated ConversationGroup[]
   messageReactions   MessageReaction[]
   commentReactions   CommentReaction[]
   socialCategories   SocialCategory[]
   socialPosts        SocialPost[]
   socialPostReplies  SocialPostReply[]
+  customRanksCreated OrganizationCustomRank[]
 }
 
 model Account {
@@ -372,6 +379,8 @@ model Organization {
   invites              OrganizationInvite[]
   joinRequests         OrganizationJoinRequest[]
   conversations        Conversation[]
+  conversationGroups   ConversationGroup[]
+  customRanks          OrganizationCustomRank[]
   socialPosts          SocialPost[]
 }
 
@@ -380,13 +389,51 @@ model OrganizationMember {
   userId         String
   organizationId String
   role           OrganizationMemberRole @default(MEMBER)
+  customRankId   String?
   title          String?
   joinedAt       DateTime               @default(now())
   appPrivileges  OrganizationMemberAppPrivilege?
+  customRank     OrganizationCustomRank? @relation(fields: [customRankId], references: [id], onDelete: SetNull)
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
+}
+
+model OrganizationCustomRank {
+  id             String                               @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  baseRole       OrganizationMemberRole              @default(MEMBER)
+  position       Int                                  @default(0)
+  createdById    String
+  createdAt      DateTime                             @default(now())
+  updatedAt      DateTime                             @updatedAt
+  appPrivileges  OrganizationCustomRankAppPrivilege?
+  members        OrganizationMember[]
+  organization   Organization                         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User                                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId, position])
+}
+
+model OrganizationCustomRankAppPrivilege {
+  id                     String                 @id @default(cuid())
+  organizationCustomRankId String              @unique
+  editOrganization       Boolean?
+  inviteMembers          Boolean?
+  createOperation        Boolean?
+  editOperation          Boolean?
+  assignRoles            Boolean?
+  inviteOrganizations    Boolean?
+  viewPrivateOperations  Boolean?
+  postAfterActionReports Boolean?
+  manageChannels         Boolean?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  organizationCustomRank OrganizationCustomRank @relation(fields: [organizationCustomRankId], references: [id], onDelete: Cascade)
 }
 
 model OrganizationMemberAppPrivilege {
@@ -649,17 +696,86 @@ model Conversation {
   title          String
   description    String?
   isChannel      Boolean                   @default(false)
+  isArchived     Boolean                   @default(false)
   visibility     OrganizationVisibility    @default(PUBLIC)
   organizationId String?
+  groupId        String?
   createdById    String
   createdAt      DateTime                  @default(now())
   updatedAt      DateTime                  @updatedAt
   organization   Organization?             @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  group          ConversationGroup?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
   createdBy      User                      @relation(fields: [createdById], references: [id], onDelete: Cascade)
   participants   ConversationParticipant[]
+  channelAccesses ConversationChannelAccess[]
+  readStates     ConversationReadState[]
   messages       Message[]
+  polls          Poll[]
 
   @@index([organizationId, updatedAt])
+  @@index([groupId])
+}
+
+model ConversationGroup {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  position       Int            @default(0)
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  conversations  Conversation[]
+
+  @@index([organizationId, position])
+}
+
+model Poll {
+  id             String       @id @default(cuid())
+  conversationId String
+  createdById    String
+  question       String
+  isMultiVote    Boolean      @default(false)
+  endsAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdBy      User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  options        PollOption[]
+}
+
+model PollOption {
+  id       String     @id @default(cuid())
+  pollId   String
+  text     String
+  position Int        @default(0)
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes    PollVote[]
+}
+
+model PollVote {
+  pollOptionId String
+  userId       String
+  createdAt    DateTime   @default(now())
+  pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollOptionId, userId])
+  @@index([userId])
+}
+
+model ConversationChannelAccess {
+  conversationId String
+  userId         String
+  grantedById    String?
+  createdAt      DateTime @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User @relation("ConversationChannelAccessUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy      User? @relation("ConversationChannelAccessGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@id([conversationId, userId])
+  @@index([userId])
 }
 
 model SocialCategory {
@@ -720,6 +836,17 @@ model ConversationParticipant {
 
   @@id([conversationId, userId])
   @@index([userId])
+}
+
+model ConversationReadState {
+  conversationId String
+  userId         String
+  lastReadAt     DateTime
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, lastReadAt])
 }
 
 model Message {
