@@ -207,6 +207,23 @@ function sortPeople(people: SocialPerson[]) {
   });
 }
 
+function getApiErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const maybeError = (payload as { error?: unknown }).error;
+  if (!maybeError) return fallback;
+  if (typeof maybeError === "string") return maybeError;
+
+  if (typeof maybeError === "object" && maybeError !== null) {
+    const maybeMessage = (maybeError as { message?: unknown }).message;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) {
+      return maybeMessage;
+    }
+  }
+
+  return fallback;
+}
+
 function ChannelList({
   channels,
   selectedConversationId,
@@ -534,9 +551,9 @@ export function ChatWorkspace({
         }),
       });
 
-      const payload = (await response.json()) as { channel?: ConversationItem; error?: string };
+      const payload = (await response.json()) as { channel?: ConversationItem; error?: unknown };
       if (!response.ok || !payload.channel) {
-        setActionError(payload.error || "Unable to create channel");
+        setActionError(getApiErrorMessage(payload, "Unable to create channel"));
         return;
       }
 
@@ -568,9 +585,9 @@ export function ChatWorkspace({
         body: JSON.stringify({ title: renameDraft }),
       });
 
-      const payload = (await response.json()) as { channel?: ConversationItem; error?: string };
+      const payload = (await response.json()) as { channel?: ConversationItem; error?: unknown };
       if (!response.ok) {
-        setActionError(payload.error || "Unable to rename channel");
+        setActionError(getApiErrorMessage(payload, "Unable to rename channel"));
         return;
       }
 
@@ -598,9 +615,9 @@ export function ChatWorkspace({
         body: JSON.stringify({ isArchived: true }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: unknown };
       if (!response.ok) {
-        setActionError(payload.error || "Unable to archive channel");
+        setActionError(getApiErrorMessage(payload, "Unable to archive channel"));
         return;
       }
 
@@ -623,8 +640,8 @@ export function ChatWorkspace({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ conversationId }),
       });
-      const payload = (await response.json()) as { error?: string };
-      if (!response.ok) { setActionError(payload.error || "Unable to delete DM"); return; }
+      const payload = (await response.json()) as { error?: unknown };
+      if (!response.ok) { setActionError(getApiErrorMessage(payload, "Unable to delete DM")); return; }
       setSelectedConversationId((current) => (current === conversationId ? null : current));
       await loadConversations();
     } catch {
@@ -650,9 +667,9 @@ export function ChatWorkspace({
         method: "DELETE",
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: unknown };
       if (!response.ok) {
-        setActionError(payload.error || "Unable to delete channel");
+        setActionError(getApiErrorMessage(payload, "Unable to delete channel"));
         return;
       }
 
@@ -681,11 +698,11 @@ export function ChatWorkspace({
       const payload = (await response.json()) as {
         members?: ChannelAccessMember[];
         allowedUserIds?: string[];
-        error?: string;
+        error?: unknown;
       };
 
       if (!response.ok) {
-        setActionError(payload.error || "Unable to load channel access settings");
+        setActionError(getApiErrorMessage(payload, "Unable to load channel access settings"));
         return;
       }
 
@@ -712,9 +729,9 @@ export function ChatWorkspace({
         body: JSON.stringify({ allowedUserIds }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: unknown };
       if (!response.ok) {
-        setActionError(payload.error || "Unable to save channel access settings");
+        setActionError(getApiErrorMessage(payload, "Unable to save channel access settings"));
         return;
       }
 
@@ -766,8 +783,8 @@ export function ChatWorkspace({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ organizationId, name: newGroupName }),
       });
-      const payload = (await response.json()) as { group?: ConversationGroup; error?: string };
-      if (!response.ok) { setActionError(payload.error || "Unable to create group"); return; }
+      const payload = (await response.json()) as { group?: ConversationGroup; error?: unknown };
+      if (!response.ok) { setActionError(getApiErrorMessage(payload, "Unable to create group")); return; }
       setNewGroupName("");
       setShowNewGroupForm(null);
       await loadGroups(organizationId);
@@ -814,7 +831,11 @@ export function ChatWorkspace({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: pollQuestion, options: validOptions, isMultiVote: pollMultiVote }),
       });
-      if (!response.ok) { setActionError("Unable to create poll"); return; }
+      const payload = (await response.json()) as { error?: unknown };
+      if (!response.ok) {
+        setActionError(getApiErrorMessage(payload, "Unable to create poll"));
+        return;
+      }
       setPollQuestion("");
       setPollOptions(["", ""]);
       setPollMultiVote(false);

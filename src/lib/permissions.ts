@@ -119,7 +119,7 @@ export function hasAppPrivilege(
       return true;
     }
 
-    return orgRole === "OWNER";
+    return orgRole === "OWNER" || orgRole === "OFFICER" || orgRole === "COMMANDER";
   }
 
   return can(action, siteRole, orgRole);

@@ -70,7 +70,7 @@ async function canManageOrganizationChannels(userId: string, organizationId: str
   const [membership, isAdmin, user] = await Promise.all([
     prisma.organizationMember.findUnique({
       where: { userId_organizationId: { userId, organizationId } },
-      include: { appPrivileges: true },
+      include: { appPrivileges: true, customRank: { include: { appPrivileges: true } } },
     }),
     isSiteAdmin(userId),
     prisma.user.findUnique({ where: { id: userId }, select: { siteRole: true } }),
@@ -84,11 +84,16 @@ async function canManageOrganizationChannels(userId: string, organizationId: str
     return false;
   }
 
+  const mergedPrivileges = {
+    ...membership.customRank?.appPrivileges,
+    ...membership.appPrivileges,
+  };
+
   return hasAppPrivilege(
     "manageChannels",
     user?.siteRole || "MEMBER",
     membership.role,
-    membership.appPrivileges || undefined
+    mergedPrivileges
   );
 }
 
@@ -1420,28 +1425,19 @@ export async function createSocialCategory(
 
 
 export async function listOrganizationChannelSettings(userId: string, organizationId: string) {
-  const [membership, isAdmin, user] = await Promise.all([
+  const [membership, canManage] = await Promise.all([
     prisma.organizationMember.findUnique({
       where: { userId_organizationId: { userId, organizationId } },
-      include: { appPrivileges: true },
+      select: { id: true },
     }),
-    isSiteAdmin(userId),
-    prisma.user.findUnique({ where: { id: userId }, select: { siteRole: true } }),
+    canManageOrganizationChannels(userId, organizationId),
   ]);
 
-  if (!membership && !isAdmin) {
+  if (!membership && !canManage) {
     throw new ForbiddenError("You must be a member of this organization");
   }
 
-  if (
-    !isAdmin &&
-    !hasAppPrivilege(
-      "manageChannels",
-      user?.siteRole || "MEMBER",
-      membership?.role,
-      membership?.appPrivileges || undefined
-    )
-  ) {
+  if (!canManage) {
     throw new ForbiddenError("Only leadership can view channel settings");
   }
 
@@ -1464,24 +1460,8 @@ export async function createOrganizationChannel(
   organizationId: string,
   input: { title: string; description?: string; visibility: OrganizationVisibility }
 ) {
-  const [membership, isAdmin, user] = await Promise.all([
-    prisma.organizationMember.findUnique({
-      where: { userId_organizationId: { userId, organizationId } },
-      include: { appPrivileges: true },
-    }),
-    isSiteAdmin(userId),
-    prisma.user.findUnique({ where: { id: userId }, select: { siteRole: true } }),
-  ]);
-
-  if (
-    !isAdmin &&
-    !hasAppPrivilege(
-      "manageChannels",
-      user?.siteRole || "MEMBER",
-      membership?.role,
-      membership?.appPrivileges || undefined
-    )
-  ) {
+  const canManage = await canManageOrganizationChannels(userId, organizationId);
+  if (!canManage) {
     throw new ForbiddenError("Only organization owners can create channels");
   }
 
@@ -2000,24 +1980,8 @@ export async function updateOrganizationChannelVisibility(
   conversationId: string,
   visibility: OrganizationVisibility
 ) {
-  const [membership, isAdmin, user] = await Promise.all([
-    prisma.organizationMember.findUnique({
-      where: { userId_organizationId: { userId, organizationId } },
-      include: { appPrivileges: true },
-    }),
-    isSiteAdmin(userId),
-    prisma.user.findUnique({ where: { id: userId }, select: { siteRole: true } }),
-  ]);
-
-  if (
-    !isAdmin &&
-    !hasAppPrivilege(
-      "manageChannels",
-      user?.siteRole || "MEMBER",
-      membership?.role,
-      membership?.appPrivileges || undefined
-    )
-  ) {
+  const canManage = await canManageOrganizationChannels(userId, organizationId);
+  if (!canManage) {
     throw new ForbiddenError("Only organization owners can change channel visibility");
   }
 
