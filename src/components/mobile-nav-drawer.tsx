@@ -9,7 +9,7 @@ const primaryNavItems = [
   { href: "/operations", label: "Operations" },
   { href: "/organizations/my", label: "My Org" },
   { href: "/fleet", label: "Fleet" },
-  { href: "/social", label: "Social" },
+  { href: "/chat", label: "Chat" },
 ];
 
 const secondaryNavItems = [
@@ -17,6 +17,7 @@ const secondaryNavItems = [
   { href: "/ai-planner", label: "AI Planner" },
   { href: "/organizations", label: "Find Org" },
   { href: "/organizations/new", label: "New Org" },
+  { href: "/social", label: "Forum" },
   { href: "/profile", label: "Profile" },
   { href: "/notifications", label: "Notifications" },
   { href: "/account", label: "Account" },

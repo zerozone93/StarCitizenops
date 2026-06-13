@@ -8,12 +8,13 @@ const primaryNavItems = [
   { href: "/operations", label: "Operations" },
   { href: "/organizations/my", label: "My Org" },
   { href: "/fleet", label: "Fleet" },
-  { href: "/social", label: "Social" },
+  { href: "/chat", label: "Chat" },
 ];
 
 const secondaryNavItems = [
   { href: "/organizations", label: "Find Org" },
   { href: "/organizations/new", label: "New Org" },
+  { href: "/social", label: "Forum" },
   { href: "/profile", label: "Profile" },
   { href: "/missions", label: "Mission Library" },
   { href: "/coalitions", label: "Coalitions" },
