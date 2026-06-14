@@ -9,6 +9,17 @@ export async function requireUser() {
     redirect("/login");
   }
 
+  // After a database reset, old session tokens may reference users that no longer exist.
+  // Redirect to login instead of letting downstream queries fail with misleading DB errors.
+  const existingUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true },
+  });
+
+  if (!existingUser) {
+    redirect("/login");
+  }
+
   return session.user;
 }
 
