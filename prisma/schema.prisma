@@ -224,6 +224,36 @@ enum AssetStatus {
   UNKNOWN
 }
 
+enum InventoryItemCategory {
+  RAW_ORE
+  REFINED_MATERIAL
+  COMPONENT
+  CONSUMABLE
+  AMMUNITION
+  FUEL
+  SALVAGE
+  CARGO
+  OTHER
+}
+
+enum IndustrialJobType {
+  MINING
+  REFINING
+  SALVAGE
+  MANUFACTURING
+  HAULING
+  TRADE
+  OTHER
+}
+
+enum IndustrialJobStatus {
+  PLANNED
+  ACTIVE
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
 enum VehicleRole {
   COMBAT
   TRANSPORT
@@ -308,6 +338,10 @@ model User {
   socialPosts        SocialPost[]
   socialPostReplies  SocialPostReply[]
   customRanksCreated OrganizationCustomRank[]
+  inventoryLocationsOwned InventoryLocation[]    @relation("InventoryLocationOwner")
+  inventoryItemsOwned InventoryItem[]            @relation("InventoryItemOwner")
+  inventoryItemUpdates InventoryItem[]           @relation("InventoryItemLastUpdatedBy")
+  industrialJobsCreated IndustrialJob[]          @relation("IndustrialJobCreator")
 }
 
 model Account {
@@ -382,6 +416,9 @@ model Organization {
   conversationGroups   ConversationGroup[]
   customRanks          OrganizationCustomRank[]
   socialPosts          SocialPost[]
+  inventoryLocations   InventoryLocation[]
+  inventoryItems       InventoryItem[]
+  industrialJobs       IndustrialJob[]
 }
 
 model OrganizationMember {
@@ -655,6 +692,76 @@ model GroundVehicle {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model InventoryLocation {
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  ownerId        String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner          User          @relation("InventoryLocationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  items          InventoryItem[]
+
+  @@index([organizationId, name])
+  @@index([ownerId])
+}
+
+model InventoryItem {
+  id              String                @id @default(cuid())
+  organizationId  String
+  ownerId         String
+  locationId      String?
+  name            String
+  category        InventoryItemCategory @default(OTHER)
+  quantity        Int                   @default(0)
+  unit            String                @default("units")
+  sku             String?
+  notes           String?
+  lastUpdatedById String
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner           User                  @relation("InventoryItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  location        InventoryLocation?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  lastUpdatedBy   User                  @relation("InventoryItemLastUpdatedBy", fields: [lastUpdatedById], references: [id], onDelete: Cascade)
+  industrialJobsTargeting IndustrialJob[]
+
+  @@index([organizationId, category])
+  @@index([locationId])
+  @@index([ownerId])
+  @@index([lastUpdatedById])
+  @@unique([organizationId, name, sku])
+}
+
+model IndustrialJob {
+  id                String             @id @default(cuid())
+  organizationId    String
+  createdById       String
+  title             String
+  jobType           IndustrialJobType
+  status            IndustrialJobStatus @default(PLANNED)
+  priority          Int                @default(3)
+  targetItemId      String?
+  quantityTarget    Int?
+  quantityCompleted Int                @default(0)
+  dueAt             DateTime?
+  startAt           DateTime?
+  completedAt       DateTime?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy         User               @relation("IndustrialJobCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  targetItem        InventoryItem?     @relation(fields: [targetItemId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([createdById])
+  @@index([targetItemId])
+  @@index([dueAt])
 }
 
 model RoleAssignment {

@@ -113,6 +113,16 @@ const sections = [
     ],
   },
   {
+    title: "Tools: Inventory & Industrial",
+    href: "/tools/inventory-industrial",
+    overview: "Native inventory and industrial operations console inside StarCitizenOps.",
+    howItWorks: [
+      "Scopes data by organization membership and role access.",
+      "Tracks inventory locations, stock levels, and categorized item records.",
+      "Runs industrial jobs with status tracking tied to inventory targets.",
+    ],
+  },
+  {
     title: "Tools: Item Finder",
     href: "/tools/item-finder",
     overview: "Fast lookup utility for in-app data exploration.",
