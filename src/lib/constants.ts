@@ -1,0 +1,15 @@
+export const preferredRoleOptions = [
+  "Commander",
+  "Pilot",
+  "Fighter pilot",
+  "Dropship pilot",
+  "Marine",
+  "Medic",
+  "Engineer",
+  "Cargo/logistics",
+  "Scout/recon",
+  "Salvage",
+  "Mining",
+  "Security",
+  "Gunner",
+] as const;

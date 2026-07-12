@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/mission-intelligence",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-live-refresh",
+      "schedule": "0 4 * * 1"
+    },
+    {
+      "path": "/api/cron/weekly-mission-seed-sync",
+      "schedule": "30 4 * * 1"
+    },
+    {
+      "path": "/api/cron/biweekly-ship-catalog-sync",
+      "schedule": "0 5 */14 * *"
+    }
+  ]
+}
