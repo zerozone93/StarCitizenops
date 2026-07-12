@@ -4,27 +4,23 @@ import {
   IndustrialJobStatus,
   IndustrialJobType,
   InventoryItemCategory,
-  type OrganizationVisibility,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
 
-type UserOrgScope = {
+type InventoryOrganizationScope = {
   organizationId: string;
   name: string;
   tag: string;
-  visibility: OrganizationVisibility;
   role: string;
 };
 
 type CreateLocationInput = {
-  organizationId: string;
   name: string;
   description?: string;
 };
 
 type CreateItemInput = {
-  organizationId: string;
   locationId?: string;
   name: string;
   category: InventoryItemCategory;
@@ -41,7 +37,6 @@ type UpdateItemInput = {
 };
 
 type CreateJobInput = {
-  organizationId: string;
   title: string;
   jobType: IndustrialJobType;
   priority: number;
@@ -57,65 +52,7 @@ type UpdateJobInput = {
   notes?: string;
 };
 
-async function isPrivilegedAdmin(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { siteRole: true, id: true },
-  });
-
-  return !!user && user.siteRole === "SITE_ADMIN" && !user.id.startsWith("demo-");
-}
-
-async function assertOrgAccess(userId: string, organizationId: string) {
-  const [admin, membership, organization] = await Promise.all([
-    isPrivilegedAdmin(userId),
-    prisma.organizationMember.findUnique({
-      where: {
-        userId_organizationId: {
-          userId,
-          organizationId,
-        },
-      },
-      select: { role: true },
-    }),
-    prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { id: true },
-    }),
-  ]);
-
-  if (!organization) {
-    throw new NotFoundError("Organization not found");
-  }
-
-  if (!admin && !membership) {
-    throw new ForbiddenError("You do not have access to this organization inventory");
-  }
-}
-
-export async function listInventoryIndustrialOrganizations(userId: string): Promise<UserOrgScope[]> {
-  const admin = await isPrivilegedAdmin(userId);
-
-  if (admin) {
-    const organizations = await prisma.organization.findMany({
-      select: {
-        id: true,
-        name: true,
-        tag: true,
-        visibility: true,
-      },
-      orderBy: { name: "asc" },
-    });
-
-    return organizations.map((organization) => ({
-      organizationId: organization.id,
-      name: organization.name,
-      tag: organization.tag,
-      visibility: organization.visibility,
-      role: "SITE_ADMIN",
-    }));
-  }
-
+async function getMembershipScope(userId: string): Promise<InventoryOrganizationScope> {
   const memberships = await prisma.organizationMember.findMany({
     where: { userId },
     select: {
@@ -125,28 +62,28 @@ export async function listInventoryIndustrialOrganizations(userId: string): Prom
           id: true,
           name: true,
           tag: true,
-          visibility: true,
         },
       },
     },
-    orderBy: {
-      organization: {
-        name: "asc",
-      },
-    },
+    orderBy: [{ joinedAt: "asc" }],
   });
 
-  return memberships.map((membership) => ({
+  if (memberships.length === 0) {
+    throw new ForbiddenError("Join an organization to use inventory and industrial tools");
+  }
+
+  const membership = memberships[0];
+  return {
     organizationId: membership.organization.id,
     name: membership.organization.name,
     tag: membership.organization.tag,
-    visibility: membership.organization.visibility,
     role: membership.role,
-  }));
+  };
 }
 
-export async function getInventoryIndustrialDashboard(userId: string, organizationId: string) {
-  await assertOrgAccess(userId, organizationId);
+export async function getInventoryIndustrialDashboard(userId: string) {
+  const membershipScope = await getMembershipScope(userId);
+  const organizationId = membershipScope.organizationId;
 
   const [locations, items, jobs] = await Promise.all([
     prisma.inventoryLocation.findMany({
@@ -234,6 +171,7 @@ export async function getInventoryIndustrialDashboard(userId: string, organizati
 
   return {
     organizationId,
+    organization: membershipScope,
     totals: {
       locations: locations.length,
       items: items.length,
@@ -247,7 +185,7 @@ export async function getInventoryIndustrialDashboard(userId: string, organizati
 }
 
 export async function createInventoryLocation(userId: string, input: CreateLocationInput) {
-  await assertOrgAccess(userId, input.organizationId);
+  const membershipScope = await getMembershipScope(userId);
 
   if (!input.name.trim()) {
     throw new ValidationError("Location name is required");
@@ -255,7 +193,7 @@ export async function createInventoryLocation(userId: string, input: CreateLocat
 
   return prisma.inventoryLocation.create({
     data: {
-      organizationId: input.organizationId,
+      organizationId: membershipScope.organizationId,
       ownerId: userId,
       name: input.name.trim(),
       description: input.description?.trim() || null,
@@ -269,7 +207,8 @@ export async function createInventoryLocation(userId: string, input: CreateLocat
 }
 
 export async function createInventoryItem(userId: string, input: CreateItemInput) {
-  await assertOrgAccess(userId, input.organizationId);
+  const membershipScope = await getMembershipScope(userId);
+  const organizationId = membershipScope.organizationId;
 
   if (!input.name.trim()) {
     throw new ValidationError("Item name is required");
@@ -283,7 +222,7 @@ export async function createInventoryItem(userId: string, input: CreateItemInput
     const location = await prisma.inventoryLocation.findFirst({
       where: {
         id: input.locationId,
-        organizationId: input.organizationId,
+        organizationId,
       },
       select: { id: true },
     });
@@ -295,7 +234,7 @@ export async function createInventoryItem(userId: string, input: CreateItemInput
 
   return prisma.inventoryItem.create({
     data: {
-      organizationId: input.organizationId,
+      organizationId,
       ownerId: userId,
       lastUpdatedById: userId,
       locationId: input.locationId || null,
@@ -319,6 +258,8 @@ export async function createInventoryItem(userId: string, input: CreateItemInput
 }
 
 export async function updateInventoryItem(userId: string, itemId: string, input: UpdateItemInput) {
+  const membershipScope = await getMembershipScope(userId);
+
   const item = await prisma.inventoryItem.findUnique({
     where: { id: itemId },
     select: {
@@ -331,7 +272,9 @@ export async function updateInventoryItem(userId: string, itemId: string, input:
     throw new NotFoundError("Inventory item not found");
   }
 
-  await assertOrgAccess(userId, item.organizationId);
+  if (item.organizationId !== membershipScope.organizationId) {
+    throw new ForbiddenError("This inventory item is outside your organization scope");
+  }
 
   if (typeof input.quantity === "number" && (!Number.isFinite(input.quantity) || input.quantity < 0)) {
     throw new ValidationError("Quantity must be zero or greater");
@@ -370,7 +313,8 @@ export async function updateInventoryItem(userId: string, itemId: string, input:
 }
 
 export async function createIndustrialJob(userId: string, input: CreateJobInput) {
-  await assertOrgAccess(userId, input.organizationId);
+  const membershipScope = await getMembershipScope(userId);
+  const organizationId = membershipScope.organizationId;
 
   if (!input.title.trim()) {
     throw new ValidationError("Job title is required");
@@ -388,7 +332,7 @@ export async function createIndustrialJob(userId: string, input: CreateJobInput)
     const targetItem = await prisma.inventoryItem.findFirst({
       where: {
         id: input.targetItemId,
-        organizationId: input.organizationId,
+        organizationId,
       },
       select: { id: true },
     });
@@ -400,7 +344,7 @@ export async function createIndustrialJob(userId: string, input: CreateJobInput)
 
   return prisma.industrialJob.create({
     data: {
-      organizationId: input.organizationId,
+      organizationId,
       createdById: userId,
       title: input.title.trim(),
       jobType: input.jobType,
@@ -423,6 +367,8 @@ export async function createIndustrialJob(userId: string, input: CreateJobInput)
 }
 
 export async function updateIndustrialJob(userId: string, jobId: string, input: UpdateJobInput) {
+  const membershipScope = await getMembershipScope(userId);
+
   const job = await prisma.industrialJob.findUnique({
     where: { id: jobId },
     select: {
@@ -435,7 +381,9 @@ export async function updateIndustrialJob(userId: string, jobId: string, input: 
     throw new NotFoundError("Industrial job not found");
   }
 
-  await assertOrgAccess(userId, job.organizationId);
+  if (job.organizationId !== membershipScope.organizationId) {
+    throw new ForbiddenError("This industrial job is outside your organization scope");
+  }
 
   if (typeof input.quantityCompleted === "number" && input.quantityCompleted < 0) {
     throw new ValidationError("Completed quantity must be zero or greater");

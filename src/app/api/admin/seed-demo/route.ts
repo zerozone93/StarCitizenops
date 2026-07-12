@@ -17,6 +17,9 @@ import {
   VehicleSize,
   SiteRole,
   SocialPostType,
+  InventoryItemCategory,
+  IndustrialJobType,
+  IndustrialJobStatus,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSync } from "bcryptjs";
@@ -47,6 +50,9 @@ export async function POST(req: NextRequest) {
     await prisma.rSVP.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.afterActionReport.deleteMany();
+    await prisma.industrialJob.deleteMany();
+    await prisma.inventoryItem.deleteMany();
+    await prisma.inventoryLocation.deleteMany();
     await prisma.operationAsset.deleteMany();
     await prisma.operationParticipant.deleteMany();
     await prisma.roleAssignment.deleteMany();
@@ -107,6 +113,132 @@ export async function POST(req: NextRequest) {
       { organizationMemberId: ghostMb.id, createOperation: true, viewPrivateOperations: true },
       { organizationMemberId: titanMb.id, postAfterActionReports: true },
     ] });
+
+    await prisma.inventoryLocation.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          ownerId: mike.id,
+          name: "Orison Logistics Deck A",
+          description: "Primary Vanguard secure inventory bay.",
+        },
+        {
+          organizationId: org.id,
+          ownerId: nova.id,
+          name: "ARC-L2 Material Staging",
+          description: "Refined materials and salvage prep warehouse.",
+        },
+      ],
+    });
+
+    const seededLocations = await prisma.inventoryLocation.findMany({
+      where: { organizationId: org.id },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const mainDeckLocationId = seededLocations.find((location) => location.name.includes("Deck"))?.id ?? seededLocations[0]?.id;
+    const stagingLocationId = seededLocations.find((location) => location.name.includes("Staging"))?.id ?? seededLocations[0]?.id;
+
+    const quantaniumItem = await prisma.inventoryItem.create({
+      data: {
+        organizationId: org.id,
+        ownerId: echo.id,
+        locationId: stagingLocationId,
+        name: "Quantanium Ore",
+        category: InventoryItemCategory.RAW_ORE,
+        quantity: 280,
+        unit: "SCU",
+        sku: "QNT-ORE-001",
+        notes: "Handle with priority in refinery queue.",
+        lastUpdatedById: echo.id,
+      },
+    });
+
+    const duraniumItem = await prisma.inventoryItem.create({
+      data: {
+        organizationId: org.id,
+        ownerId: nova.id,
+        locationId: stagingLocationId,
+        name: "Refined Duranium",
+        category: InventoryItemCategory.REFINED_MATERIAL,
+        quantity: 450,
+        unit: "SCU",
+        sku: "DUR-REF-010",
+        notes: "Reserved for industrial manufacturing queue.",
+        lastUpdatedById: nova.id,
+      },
+    });
+
+    await prisma.inventoryItem.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          ownerId: mike.id,
+          locationId: mainDeckLocationId,
+          name: "Medical Supplies",
+          category: InventoryItemCategory.CONSUMABLE,
+          quantity: 210,
+          unit: "kits",
+          sku: "MED-KIT-020",
+          notes: "Mission-ready med stock for dropship teams.",
+          lastUpdatedById: mike.id,
+        },
+        {
+          organizationId: org.id,
+          ownerId: jax.id,
+          locationId: mainDeckLocationId,
+          name: "Ballistic Ammunition",
+          category: InventoryItemCategory.AMMUNITION,
+          quantity: 140,
+          unit: "crates",
+          sku: "AMMO-BAL-033",
+          notes: "Frontline operation reserve.",
+          lastUpdatedById: jax.id,
+        },
+        {
+          organizationId: org.id,
+          ownerId: nova.id,
+          locationId: mainDeckLocationId,
+          name: "Hydrogen Fuel Cells",
+          category: InventoryItemCategory.FUEL,
+          quantity: 95,
+          unit: "cells",
+          sku: "FUEL-HYD-012",
+          notes: "Capital escort and support ship fuel stock.",
+          lastUpdatedById: nova.id,
+        },
+      ],
+    });
+
+    await prisma.industrialJob.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          createdById: echo.id,
+          title: "Quantanium Refining Batch A",
+          jobType: IndustrialJobType.REFINING,
+          status: IndustrialJobStatus.ACTIVE,
+          priority: 5,
+          targetItemId: quantaniumItem.id,
+          quantityTarget: 280,
+          quantityCompleted: 120,
+          notes: "Critical for Operation Deep Vein sustainment.",
+        },
+        {
+          organizationId: org.id,
+          createdById: nova.id,
+          title: "Duranium Component Fabrication",
+          jobType: IndustrialJobType.MANUFACTURING,
+          status: IndustrialJobStatus.PLANNED,
+          priority: 4,
+          targetItemId: duraniumItem.id,
+          quantityTarget: 300,
+          quantityCompleted: 0,
+          notes: "Produce armor components for coalition fleet prep.",
+        },
+      ],
+    });
 
     const atlasOrg = await prisma.organization.create({ data: { name: "Atlas Freight Corp", tag: "ATFC", description: "Industrial logistics powerhouse. Coalition partners for supply chain operations.", focusType: OrganizationFocusType.LOGISTICS, visibility: OrganizationVisibility.PUBLIC, ownerId: atlasOwner.id, members: { create: [{ userId: atlasOwner.id, role: OrganizationMemberRole.OWNER, title: "CEO" }, { userId: nova.id, role: OrganizationMemberRole.OFFICER, title: "Joint Liaison" }] } } });
     const horizonOrg = await prisma.organization.create({ data: { name: "Horizon Deep Space", tag: "HRZN", description: "Exploration and cartography organization. Provides strategic intelligence to allied combat orgs.", focusType: OrganizationFocusType.EXPLORATION, visibility: OrganizationVisibility.PUBLIC, ownerId: horizonOwner.id, members: { create: [{ userId: horizonOwner.id, role: OrganizationMemberRole.OWNER, title: "Chief Navigator" }, { userId: ryker.id, role: OrganizationMemberRole.OFFICER, title: "Tactical Recon Liaison" }] } } });

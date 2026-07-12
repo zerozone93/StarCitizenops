@@ -6,7 +6,6 @@ import { apiError, apiSuccess } from "@/lib/api-response";
 import { createInventoryLocation } from "@/server/inventory-industrial";
 
 const createLocationSchema = z.object({
-  organizationId: z.string().cuid(),
   name: z.string().min(1),
   description: z.string().optional(),
 });

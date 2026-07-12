@@ -7,7 +7,6 @@ import { apiError, apiSuccess } from "@/lib/api-response";
 import { createInventoryItem } from "@/server/inventory-industrial";
 
 const createItemSchema = z.object({
-  organizationId: z.string().cuid(),
   locationId: z.string().cuid().optional(),
   name: z.string().min(1),
   category: z.nativeEnum(InventoryItemCategory),

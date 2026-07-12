@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, AssetStatus, AssetType, NotificationType, OperationStatus, OperationType, OrganizationFocusType, OrganizationMemberRole, OrganizationVisibility, RSVPStatus, ThreatLevel, MissionDifficulty, MissionRewardType, ShipRole, ShipSize, VehicleRole, VehicleSize } from "@prisma/client";
+import { PrismaClient, AssetStatus, AssetType, NotificationType, OperationStatus, OperationType, OrganizationFocusType, OrganizationMemberRole, OrganizationVisibility, RSVPStatus, ThreatLevel, MissionDifficulty, MissionRewardType, ShipRole, ShipSize, VehicleRole, VehicleSize, InventoryItemCategory, IndustrialJobType, IndustrialJobStatus } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSync } from "bcryptjs";
 import { syncRealScMissions } from "../scripts/lib/real-sc-missions";
@@ -41,6 +41,9 @@ async function main() {
   await prisma.rSVP.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.afterActionReport.deleteMany();
+  await prisma.industrialJob.deleteMany();
+  await prisma.inventoryItem.deleteMany();
+  await prisma.inventoryLocation.deleteMany();
   await prisma.operationAsset.deleteMany();
   await prisma.operationParticipant.deleteMany();
   await prisma.roleAssignment.deleteMany();
@@ -172,6 +175,144 @@ async function main() {
         create: [{ userId: logistics.id, role: OrganizationMemberRole.OWNER, title: "Guildmaster" }],
       },
     },
+  });
+
+  await prisma.inventoryLocation.createMany({
+    data: [
+      {
+        organizationId: org.id,
+        ownerId: commander.id,
+        name: "Everus Harbor - Bay A12",
+        description: "Primary logistics bay for Aegis Vanguard.",
+      },
+      {
+        organizationId: org.id,
+        ownerId: logistics.id,
+        name: "MIC-L1 Refinery Hold",
+        description: "Refined material staging for industrial runs.",
+      },
+    ],
+  });
+
+  const locations = await prisma.inventoryLocation.findMany({
+    where: { organizationId: org.id },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true },
+  });
+
+  const primaryLocationId = locations.find((location) => location.name.includes("Everus"))?.id ?? locations[0]?.id;
+  const refineryLocationId = locations.find((location) => location.name.includes("Refinery"))?.id ?? locations[0]?.id;
+
+  const quantanium = await prisma.inventoryItem.create({
+    data: {
+      organizationId: org.id,
+      ownerId: logistics.id,
+      locationId: refineryLocationId,
+      name: "Quantanium Ore",
+      category: InventoryItemCategory.RAW_ORE,
+      quantity: 240,
+      unit: "SCU",
+      sku: "ORE-QUANT-001",
+      notes: "Stabilization priority. Process within safe timer window.",
+      lastUpdatedById: logistics.id,
+    },
+  });
+
+  const refinedTitanium = await prisma.inventoryItem.create({
+    data: {
+      organizationId: org.id,
+      ownerId: logistics.id,
+      locationId: refineryLocationId,
+      name: "Refined Titanium",
+      category: InventoryItemCategory.REFINED_MATERIAL,
+      quantity: 520,
+      unit: "SCU",
+      sku: "MAT-TIT-010",
+      notes: "Reserved for armor and ship component fabrication.",
+      lastUpdatedById: logistics.id,
+    },
+  });
+
+  await prisma.inventoryItem.createMany({
+    data: [
+      {
+        organizationId: org.id,
+        ownerId: commander.id,
+        locationId: primaryLocationId,
+        name: "Medpens",
+        category: InventoryItemCategory.CONSUMABLE,
+        quantity: 160,
+        unit: "units",
+        sku: "CONS-MED-004",
+        notes: "Frontline medical stock.",
+        lastUpdatedById: commander.id,
+      },
+      {
+        organizationId: org.id,
+        ownerId: commander.id,
+        locationId: primaryLocationId,
+        name: "Ballistic Ammo Crates",
+        category: InventoryItemCategory.AMMUNITION,
+        quantity: 90,
+        unit: "crates",
+        sku: "AMMO-BAL-021",
+        notes: "Distributed before operation launch windows.",
+        lastUpdatedById: commander.id,
+      },
+      {
+        organizationId: org.id,
+        ownerId: logistics.id,
+        locationId: primaryLocationId,
+        name: "Hydrogen Fuel Canisters",
+        category: InventoryItemCategory.FUEL,
+        quantity: 120,
+        unit: "canisters",
+        sku: "FUEL-HYD-030",
+        notes: "Carrier and heavy escort refuel reserve.",
+        lastUpdatedById: logistics.id,
+      },
+      {
+        organizationId: org.id,
+        ownerId: recon.id,
+        locationId: primaryLocationId,
+        name: "Encrypted Sensor Arrays",
+        category: InventoryItemCategory.COMPONENT,
+        quantity: 18,
+        unit: "units",
+        sku: "COMP-SNS-006",
+        notes: "Recon refit component pool.",
+        lastUpdatedById: recon.id,
+      },
+    ],
+  });
+
+  await prisma.industrialJob.createMany({
+    data: [
+      {
+        organizationId: org.id,
+        createdById: logistics.id,
+        title: "Refine Quantanium Batch Q12",
+        jobType: IndustrialJobType.REFINING,
+        status: IndustrialJobStatus.ACTIVE,
+        priority: 5,
+        targetItemId: quantanium.id,
+        quantityTarget: 240,
+        quantityCompleted: 96,
+        notes: "Maintain round-the-clock refinery scheduling.",
+      },
+      {
+        organizationId: org.id,
+        createdById: commander.id,
+        title: "Manufacture Armor Plate Modules",
+        jobType: IndustrialJobType.MANUFACTURING,
+        status: IndustrialJobStatus.PLANNED,
+        priority: 4,
+        targetItemId: refinedTitanium.id,
+        quantityTarget: 300,
+        quantityCompleted: 0,
+        notes: "Needed for next combined-arms drill.",
+      },
+    ],
   });
 
   const loadTestUsersInput = Array.from({ length: 30 }, (_, index) => {

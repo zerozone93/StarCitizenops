@@ -7,7 +7,6 @@ import { apiError, apiSuccess } from "@/lib/api-response";
 import { createIndustrialJob } from "@/server/inventory-industrial";
 
 const createJobSchema = z.object({
-  organizationId: z.string().cuid(),
   title: z.string().min(1),
   jobType: z.nativeEnum(IndustrialJobType),
   priority: z.number().int().min(1).max(5),

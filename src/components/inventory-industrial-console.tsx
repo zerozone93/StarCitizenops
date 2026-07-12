@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type OrganizationScope = {
+type InventoryOrganizationScope = {
   organizationId: string;
   name: string;
   tag: string;
   role: string;
-  visibility: "PUBLIC" | "PRIVATE";
 };
 
 type DashboardPayload = {
   organizationId: string;
+  organization: InventoryOrganizationScope;
   totals: {
     locations: number;
     items: number;
@@ -86,8 +86,6 @@ function parseApiError(payload: ApiErrorShape | null, fallback: string) {
 }
 
 export function InventoryIndustrialConsole() {
-  const [organizations, setOrganizations] = useState<OrganizationScope[]>([]);
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,22 +107,14 @@ export function InventoryIndustrialConsole() {
   const [newJobTargetQuantity, setNewJobTargetQuantity] = useState<number | "">("");
   const [newJobDueAt, setNewJobDueAt] = useState("");
 
-  const selectedOrganization = useMemo(
-    () => organizations.find((organization) => organization.organizationId === selectedOrganizationId) ?? null,
-    [organizations, selectedOrganizationId]
-  );
+  const selectedOrganization = useMemo(() => dashboard?.organization ?? null, [dashboard]);
 
-  const refreshDashboard = useCallback(async (organizationId: string) => {
-    if (!organizationId) {
-      setDashboard(null);
-      return;
-    }
-
+  const refreshDashboard = useCallback(async () => {
     setBusy(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/tools/inventory-industrial/dashboard?organizationId=${organizationId}`, {
+      const response = await fetch("/api/tools/inventory-industrial/dashboard", {
         method: "GET",
       });
       const payload = (await response.json()) as DashboardPayload | ApiErrorShape;
@@ -146,34 +136,28 @@ export function InventoryIndustrialConsole() {
   useEffect(() => {
     let active = true;
 
-    async function loadOrganizations() {
+    async function loadDashboard() {
       setBusy(true);
       setError(null);
       try {
-        const response = await fetch("/api/tools/inventory-industrial/organizations", { method: "GET" });
-        const payload = (await response.json()) as { organizations: OrganizationScope[] } | ApiErrorShape;
+        const response = await fetch("/api/tools/inventory-industrial/dashboard", { method: "GET" });
+        const payload = (await response.json()) as DashboardPayload | ApiErrorShape;
         if (!response.ok) {
-          throw new Error(parseApiError(payload as ApiErrorShape, "Failed to load organizations"));
+          throw new Error(parseApiError(payload as ApiErrorShape, "Failed to load dashboard"));
         }
 
         if (!active) {
           return;
         }
 
-        const nextOrganizations = (payload as { organizations: OrganizationScope[] }).organizations;
-        setOrganizations(nextOrganizations);
-
-        if (nextOrganizations.length > 0) {
-          const nextId = nextOrganizations[0].organizationId;
-          setSelectedOrganizationId(nextId);
-          void refreshDashboard(nextId);
-        }
+        setDashboard(payload as DashboardPayload);
       } catch (caughtError) {
         if (!active) {
           return;
         }
-        const message = caughtError instanceof Error ? caughtError.message : "Failed to load organizations";
+        const message = caughtError instanceof Error ? caughtError.message : "Failed to load dashboard";
         setError(message);
+        setDashboard(null);
       } finally {
         if (active) {
           setBusy(false);
@@ -181,12 +165,12 @@ export function InventoryIndustrialConsole() {
       }
     }
 
-    void loadOrganizations();
+    void loadDashboard();
 
     return () => {
       active = false;
     };
-  }, [refreshDashboard]);
+  }, []);
 
   async function postJson(url: string, payload: Record<string, unknown>) {
     const response = await fetch(url, {
@@ -215,7 +199,7 @@ export function InventoryIndustrialConsole() {
   }
 
   async function handleCreateLocation() {
-    if (!selectedOrganizationId || !newLocationName.trim()) {
+    if (!newLocationName.trim()) {
       return;
     }
 
@@ -223,14 +207,13 @@ export function InventoryIndustrialConsole() {
     setError(null);
     try {
       await postJson("/api/tools/inventory-industrial/locations", {
-        organizationId: selectedOrganizationId,
         name: newLocationName,
         description: newLocationDescription || undefined,
       });
 
       setNewLocationName("");
       setNewLocationDescription("");
-      await refreshDashboard(selectedOrganizationId);
+      await refreshDashboard();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to create location");
     } finally {
@@ -239,7 +222,7 @@ export function InventoryIndustrialConsole() {
   }
 
   async function handleCreateItem() {
-    if (!selectedOrganizationId || !newItemName.trim()) {
+    if (!newItemName.trim()) {
       return;
     }
 
@@ -248,7 +231,6 @@ export function InventoryIndustrialConsole() {
 
     try {
       await postJson("/api/tools/inventory-industrial/items", {
-        organizationId: selectedOrganizationId,
         name: newItemName,
         category: newItemCategory,
         quantity: newItemQuantity,
@@ -260,7 +242,7 @@ export function InventoryIndustrialConsole() {
       setNewItemName("");
       setNewItemQuantity(0);
       setNewItemSku("");
-      await refreshDashboard(selectedOrganizationId);
+      await refreshDashboard();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to create item");
     } finally {
@@ -269,7 +251,7 @@ export function InventoryIndustrialConsole() {
   }
 
   async function handleCreateJob() {
-    if (!selectedOrganizationId || !newJobTitle.trim()) {
+    if (!newJobTitle.trim()) {
       return;
     }
 
@@ -278,7 +260,6 @@ export function InventoryIndustrialConsole() {
 
     try {
       await postJson("/api/tools/inventory-industrial/jobs", {
-        organizationId: selectedOrganizationId,
         title: newJobTitle,
         jobType: newJobType,
         priority: newJobPriority,
@@ -291,7 +272,7 @@ export function InventoryIndustrialConsole() {
       setNewJobTargetItemId("");
       setNewJobTargetQuantity("");
       setNewJobDueAt("");
-      await refreshDashboard(selectedOrganizationId);
+      await refreshDashboard();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to create job");
     } finally {
@@ -305,7 +286,7 @@ export function InventoryIndustrialConsole() {
 
     try {
       await patchJson(`/api/tools/inventory-industrial/jobs/${jobId}`, { status });
-      await refreshDashboard(selectedOrganizationId);
+      await refreshDashboard();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to update job status");
     } finally {
@@ -320,7 +301,7 @@ export function InventoryIndustrialConsole() {
 
     try {
       await patchJson(`/api/tools/inventory-industrial/items/${itemId}`, { quantity: nextQuantity });
-      await refreshDashboard(selectedOrganizationId);
+      await refreshDashboard();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Failed to adjust quantity");
     } finally {
@@ -339,27 +320,11 @@ export function InventoryIndustrialConsole() {
               Native StarCitizenOps inventory and industrial tracking is now wired to the database. Manage stock, storage locations, and production jobs by organization.
             </p>
           </div>
-          <div className="flex min-w-[260px] flex-col gap-2">
-            <label htmlFor="inventory-org" className="text-xs uppercase tracking-[0.18em] text-slate-400">
-              Organization Scope
-            </label>
-            <select
-              id="inventory-org"
-              value={selectedOrganizationId}
-              onChange={(event) => {
-                const nextId = event.target.value;
-                setSelectedOrganizationId(nextId);
-                void refreshDashboard(nextId);
-              }}
-              className="rounded-xl border border-cyan-300/20 bg-slate-950/80 px-3 py-2 text-sm text-slate-100"
-            >
-              {organizations.map((organization) => (
-                <option key={organization.organizationId} value={organization.organizationId}>
-                  {organization.name} [{organization.tag}] ({organization.role})
-                </option>
-              ))}
-            </select>
-          </div>
+          {selectedOrganization ? (
+            <div className="rounded-xl border border-cyan-300/20 bg-slate-950/80 px-3 py-2 text-sm text-cyan-100">
+              {selectedOrganization.name} [{selectedOrganization.tag}] ({selectedOrganization.role})
+            </div>
+          ) : null}
         </div>
       </div>
 

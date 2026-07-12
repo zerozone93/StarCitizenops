@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { apiError, apiSuccess } from "@/lib/api-response";
-import { listInventoryIndustrialOrganizations } from "@/server/inventory-industrial";
+import { getInventoryIndustrialDashboard } from "@/server/inventory-industrial";
 
 export async function GET() {
   try {
@@ -11,8 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizations = await listInventoryIndustrialOrganizations(session.user.id);
-    return apiSuccess({ organizations });
+    const dashboard = await getInventoryIndustrialDashboard(session.user.id);
+    return apiSuccess({ organizations: [dashboard.organization] });
   } catch (error) {
     return apiError(error);
   }
