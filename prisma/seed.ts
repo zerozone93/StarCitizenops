@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, AssetStatus, AssetType, NotificationType, OperationStatus, OperationType, OrganizationFocusType, OrganizationMemberRole, OrganizationVisibility, RSVPStatus, ThreatLevel, MissionDifficulty, MissionRewardType, ShipRole, ShipSize, VehicleRole, VehicleSize, InventoryItemCategory, IndustrialJobType, IndustrialJobStatus } from "@prisma/client";
+import { PrismaClient, AssetStatus, AssetType, NotificationType, OperationStatus, OperationType, OrganizationFocusType, OrganizationMemberRole, OrganizationVisibility, RSVPStatus, ThreatLevel, MissionDifficulty, MissionRewardType, ShipRole, ShipSize, VehicleRole, VehicleSize, InventoryItemCategory, IndustrialJobType, IndustrialJobStatus, RefineryRunStatus, ResourceTicketStatus, ResourceTicketType } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSync } from "bcryptjs";
 import { syncRealScMissions } from "../scripts/lib/real-sc-missions";
@@ -41,6 +41,8 @@ async function main() {
   await prisma.rSVP.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.afterActionReport.deleteMany();
+  await prisma.resourceTicket.deleteMany();
+  await prisma.refineryRun.deleteMany();
   await prisma.industrialJob.deleteMany();
   await prisma.inventoryItem.deleteMany();
   await prisma.inventoryLocation.deleteMany();
@@ -311,6 +313,64 @@ async function main() {
         quantityTarget: 300,
         quantityCompleted: 0,
         notes: "Needed for next combined-arms drill.",
+      },
+    ],
+  });
+
+  await prisma.refineryRun.createMany({
+    data: [
+      {
+        organizationId: org.id,
+        createdById: logistics.id,
+        inputItemId: quantanium.id,
+        outputItemId: refinedTitanium.id,
+        intakeQuantity: 180,
+        outputQuantity: 132,
+        wasteQuantity: 18,
+        status: RefineryRunStatus.PROCESSING,
+        notes: "Phase 2 refining window active.",
+      },
+      {
+        organizationId: org.id,
+        createdById: commander.id,
+        inputItemId: quantanium.id,
+        outputItemId: refinedTitanium.id,
+        intakeQuantity: 90,
+        outputQuantity: 72,
+        wasteQuantity: 5,
+        status: RefineryRunStatus.READY_FOR_OUTPUT,
+        notes: "Awaiting cargo transfer confirmation.",
+      },
+    ],
+  });
+
+  await prisma.resourceTicket.createMany({
+    data: [
+      {
+        ticketNumber: "RT-20260712-1001",
+        organizationId: org.id,
+        requesterId: commander.id,
+        approvedById: logistics.id,
+        itemId: quantanium.id,
+        quantity: 30,
+        unit: "SCU",
+        type: ResourceTicketType.ISSUE,
+        status: ResourceTicketStatus.APPROVED,
+        reason: "Refinery intake from mining haul",
+        notes: "Allocated to Everus Bay intake queue.",
+      },
+      {
+        ticketNumber: "RT-20260712-1002",
+        organizationId: org.id,
+        requesterId: recon.id,
+        approvedById: commander.id,
+        itemId: refinedTitanium.id,
+        quantity: 20,
+        unit: "SCU",
+        type: ResourceTicketType.ISSUE,
+        status: ResourceTicketStatus.FULFILLED,
+        reason: "Sensor array hardening parts",
+        notes: "Issued to recon fabrication team.",
       },
     ],
   });

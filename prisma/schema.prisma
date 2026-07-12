@@ -254,6 +254,27 @@ enum IndustrialJobStatus {
   CANCELLED
 }
 
+enum RefineryRunStatus {
+  INTAKE
+  PROCESSING
+  READY_FOR_OUTPUT
+  COMPLETED
+  CANCELLED
+}
+
+enum ResourceTicketType {
+  ISSUE
+  RETURN
+  ADJUSTMENT
+}
+
+enum ResourceTicketStatus {
+  OPEN
+  APPROVED
+  FULFILLED
+  CANCELLED
+}
+
 enum VehicleRole {
   COMBAT
   TRANSPORT
@@ -342,6 +363,9 @@ model User {
   inventoryItemsOwned InventoryItem[]            @relation("InventoryItemOwner")
   inventoryItemUpdates InventoryItem[]           @relation("InventoryItemLastUpdatedBy")
   industrialJobsCreated IndustrialJob[]          @relation("IndustrialJobCreator")
+  refineryRunsCreated RefineryRun[]              @relation("RefineryRunCreator")
+  resourceTicketsRequested ResourceTicket[]      @relation("ResourceTicketRequester")
+  resourceTicketsApproved ResourceTicket[]       @relation("ResourceTicketApprover")
 }
 
 model Account {
@@ -419,6 +443,8 @@ model Organization {
   inventoryLocations   InventoryLocation[]
   inventoryItems       InventoryItem[]
   industrialJobs       IndustrialJob[]
+  refineryRuns         RefineryRun[]
+  resourceTickets      ResourceTicket[]
 }
 
 model OrganizationMember {
@@ -729,6 +755,9 @@ model InventoryItem {
   location        InventoryLocation?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
   lastUpdatedBy   User                  @relation("InventoryItemLastUpdatedBy", fields: [lastUpdatedById], references: [id], onDelete: Cascade)
   industrialJobsTargeting IndustrialJob[]
+  refineryRunsInput RefineryRun[]       @relation("RefineryRunInputItem")
+  refineryRunsOutput RefineryRun[]      @relation("RefineryRunOutputItem")
+  resourceTickets  ResourceTicket[]
 
   @@index([organizationId, category])
   @@index([locationId])
@@ -762,6 +791,57 @@ model IndustrialJob {
   @@index([createdById])
   @@index([targetItemId])
   @@index([dueAt])
+}
+
+model RefineryRun {
+  id             String            @id @default(cuid())
+  organizationId String
+  createdById    String
+  inputItemId    String
+  outputItemId   String?
+  intakeQuantity Int
+  outputQuantity Int?
+  wasteQuantity  Int?
+  status         RefineryRunStatus @default(INTAKE)
+  startedAt      DateTime          @default(now())
+  completedAt    DateTime?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User              @relation("RefineryRunCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  inputItem      InventoryItem     @relation("RefineryRunInputItem", fields: [inputItemId], references: [id], onDelete: Cascade)
+  outputItem     InventoryItem?    @relation("RefineryRunOutputItem", fields: [outputItemId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@index([inputItemId])
+  @@index([outputItemId])
+}
+
+model ResourceTicket {
+  id             String               @id @default(cuid())
+  ticketNumber   String               @unique
+  organizationId String
+  requesterId    String
+  approvedById   String?
+  itemId         String
+  quantity       Int
+  unit           String               @default("units")
+  type           ResourceTicketType
+  status         ResourceTicketStatus @default(OPEN)
+  reason         String
+  notes          String?
+  fulfilledAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requester      User                 @relation("ResourceTicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  approvedBy     User?                @relation("ResourceTicketApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  item           InventoryItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([itemId])
+  @@index([requesterId])
 }
 
 model RoleAssignment {

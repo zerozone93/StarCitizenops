@@ -20,6 +20,9 @@ import {
   InventoryItemCategory,
   IndustrialJobType,
   IndustrialJobStatus,
+  RefineryRunStatus,
+  ResourceTicketStatus,
+  ResourceTicketType,
 } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSync } from "bcryptjs";
@@ -50,6 +53,8 @@ export async function POST(req: NextRequest) {
     await prisma.rSVP.deleteMany();
     await prisma.comment.deleteMany();
     await prisma.afterActionReport.deleteMany();
+    await prisma.resourceTicket.deleteMany();
+    await prisma.refineryRun.deleteMany();
     await prisma.industrialJob.deleteMany();
     await prisma.inventoryItem.deleteMany();
     await prisma.inventoryLocation.deleteMany();
@@ -236,6 +241,64 @@ export async function POST(req: NextRequest) {
           quantityTarget: 300,
           quantityCompleted: 0,
           notes: "Produce armor components for coalition fleet prep.",
+        },
+      ],
+    });
+
+    await prisma.refineryRun.createMany({
+      data: [
+        {
+          organizationId: org.id,
+          createdById: echo.id,
+          inputItemId: quantaniumItem.id,
+          outputItemId: duraniumItem.id,
+          intakeQuantity: 160,
+          outputQuantity: 118,
+          wasteQuantity: 12,
+          status: RefineryRunStatus.PROCESSING,
+          notes: "Main industrial queue cycle in progress.",
+        },
+        {
+          organizationId: org.id,
+          createdById: nova.id,
+          inputItemId: quantaniumItem.id,
+          outputItemId: duraniumItem.id,
+          intakeQuantity: 80,
+          outputQuantity: 60,
+          wasteQuantity: 7,
+          status: RefineryRunStatus.READY_FOR_OUTPUT,
+          notes: "Awaiting transport authorization.",
+        },
+      ],
+    });
+
+    await prisma.resourceTicket.createMany({
+      data: [
+        {
+          ticketNumber: "RT-20260712-3001",
+          organizationId: org.id,
+          requesterId: jax.id,
+          approvedById: mike.id,
+          itemId: quantaniumItem.id,
+          quantity: 24,
+          unit: "SCU",
+          type: ResourceTicketType.ISSUE,
+          status: ResourceTicketStatus.APPROVED,
+          reason: "Refinery feed for Batch A",
+          notes: "Cleared for immediate take-out to staging.",
+        },
+        {
+          ticketNumber: "RT-20260712-3002",
+          organizationId: org.id,
+          requesterId: ryker.id,
+          approvedById: nova.id,
+          itemId: duraniumItem.id,
+          quantity: 15,
+          unit: "SCU",
+          type: ResourceTicketType.ISSUE,
+          status: ResourceTicketStatus.FULFILLED,
+          reason: "Recon sensor hardening",
+          notes: "Issued and logged in field inventory.",
         },
       ],
     });

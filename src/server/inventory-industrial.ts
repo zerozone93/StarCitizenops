@@ -4,6 +4,9 @@ import {
   IndustrialJobStatus,
   IndustrialJobType,
   InventoryItemCategory,
+  RefineryRunStatus,
+  ResourceTicketStatus,
+  ResourceTicketType,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, NotFoundError, ValidationError } from "@/lib/errors";
@@ -52,6 +55,34 @@ type UpdateJobInput = {
   notes?: string;
 };
 
+type CreateRefineryRunInput = {
+  inputItemId: string;
+  outputItemId?: string;
+  intakeQuantity: number;
+  notes?: string;
+};
+
+type UpdateRefineryRunInput = {
+  status?: RefineryRunStatus;
+  outputQuantity?: number;
+  wasteQuantity?: number;
+  notes?: string;
+};
+
+type CreateResourceTicketInput = {
+  itemId: string;
+  quantity: number;
+  unit?: string;
+  type: ResourceTicketType;
+  reason: string;
+  notes?: string;
+};
+
+type UpdateResourceTicketInput = {
+  status?: ResourceTicketStatus;
+  notes?: string;
+};
+
 async function getMembershipScope(userId: string): Promise<InventoryOrganizationScope> {
   const memberships = await prisma.organizationMember.findMany({
     where: { userId },
@@ -85,7 +116,7 @@ export async function getInventoryIndustrialDashboard(userId: string) {
   const membershipScope = await getMembershipScope(userId);
   const organizationId = membershipScope.organizationId;
 
-  const [locations, items, jobs] = await Promise.all([
+  const [locations, items, jobs, refineryRuns, tickets] = await Promise.all([
     prisma.inventoryLocation.findMany({
       where: { organizationId },
       select: {
@@ -167,6 +198,78 @@ export async function getInventoryIndustrialDashboard(userId: string) {
       },
       orderBy: [{ status: "asc" }, { priority: "desc" }, { dueAt: "asc" }],
     }),
+    prisma.refineryRun.findMany({
+      where: { organizationId },
+      select: {
+        id: true,
+        intakeQuantity: true,
+        outputQuantity: true,
+        wasteQuantity: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        notes: true,
+        inputItem: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+          },
+        },
+        outputItem: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            starCitizenHandle: true,
+          },
+        },
+      },
+      orderBy: [{ startedAt: "desc" }],
+    }),
+    prisma.resourceTicket.findMany({
+      where: { organizationId },
+      select: {
+        id: true,
+        ticketNumber: true,
+        quantity: true,
+        unit: true,
+        type: true,
+        status: true,
+        reason: true,
+        notes: true,
+        fulfilledAt: true,
+        createdAt: true,
+        item: {
+          select: {
+            id: true,
+            name: true,
+            unit: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            starCitizenHandle: true,
+          },
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            name: true,
+            starCitizenHandle: true,
+          },
+        },
+      },
+      orderBy: [{ createdAt: "desc" }],
+    }),
   ]);
 
   return {
@@ -177,11 +280,22 @@ export async function getInventoryIndustrialDashboard(userId: string) {
       items: items.length,
       quantityOnHand: items.reduce((sum, item) => sum + item.quantity, 0),
       jobsOpen: jobs.filter((job) => job.status !== "COMPLETED" && job.status !== "CANCELLED").length,
+      refineryActive: refineryRuns.filter((run) => run.status !== "COMPLETED" && run.status !== "CANCELLED").length,
+      ticketsOpen: tickets.filter((ticket) => ticket.status !== "FULFILLED" && ticket.status !== "CANCELLED").length,
     },
     locations,
     items,
     jobs,
+    refineryRuns,
+    tickets,
   };
+}
+
+function buildTicketNumber() {
+  const now = new Date();
+  const datePart = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}`;
+  const randomPart = Math.floor(1000 + Math.random() * 9000);
+  return `RT-${datePart}-${randomPart}`;
 }
 
 export async function createInventoryLocation(userId: string, input: CreateLocationInput) {
@@ -405,6 +519,176 @@ export async function updateIndustrialJob(userId: string, jobId: string, input: 
       status: true,
       quantityCompleted: true,
       completedAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export async function createRefineryRun(userId: string, input: CreateRefineryRunInput) {
+  const membershipScope = await getMembershipScope(userId);
+
+  if (!Number.isFinite(input.intakeQuantity) || input.intakeQuantity <= 0) {
+    throw new ValidationError("Intake quantity must be greater than zero");
+  }
+
+  const inputItem = await prisma.inventoryItem.findFirst({
+    where: {
+      id: input.inputItemId,
+      organizationId: membershipScope.organizationId,
+    },
+    select: { id: true },
+  });
+
+  if (!inputItem) {
+    throw new NotFoundError("Input inventory item not found");
+  }
+
+  if (input.outputItemId) {
+    const outputItem = await prisma.inventoryItem.findFirst({
+      where: {
+        id: input.outputItemId,
+        organizationId: membershipScope.organizationId,
+      },
+      select: { id: true },
+    });
+
+    if (!outputItem) {
+      throw new NotFoundError("Output inventory item not found");
+    }
+  }
+
+  return prisma.refineryRun.create({
+    data: {
+      organizationId: membershipScope.organizationId,
+      createdById: userId,
+      inputItemId: input.inputItemId,
+      outputItemId: input.outputItemId || null,
+      intakeQuantity: input.intakeQuantity,
+      notes: input.notes?.trim() || null,
+    },
+    select: {
+      id: true,
+      status: true,
+      intakeQuantity: true,
+      startedAt: true,
+    },
+  });
+}
+
+export async function updateRefineryRun(userId: string, runId: string, input: UpdateRefineryRunInput) {
+  const membershipScope = await getMembershipScope(userId);
+
+  const run = await prisma.refineryRun.findUnique({
+    where: { id: runId },
+    select: { id: true, organizationId: true },
+  });
+
+  if (!run) {
+    throw new NotFoundError("Refinery run not found");
+  }
+
+  if (run.organizationId !== membershipScope.organizationId) {
+    throw new ForbiddenError("This refinery run is outside your organization scope");
+  }
+
+  const completedAt = input.status === "COMPLETED" ? new Date() : undefined;
+
+  return prisma.refineryRun.update({
+    where: { id: runId },
+    data: {
+      status: input.status,
+      outputQuantity: typeof input.outputQuantity === "number" ? input.outputQuantity : undefined,
+      wasteQuantity: typeof input.wasteQuantity === "number" ? input.wasteQuantity : undefined,
+      notes: typeof input.notes === "string" ? input.notes.trim() || null : undefined,
+      completedAt,
+    },
+    select: {
+      id: true,
+      status: true,
+      outputQuantity: true,
+      wasteQuantity: true,
+      completedAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export async function createResourceTicket(userId: string, input: CreateResourceTicketInput) {
+  const membershipScope = await getMembershipScope(userId);
+
+  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+    throw new ValidationError("Ticket quantity must be greater than zero");
+  }
+
+  if (!input.reason.trim()) {
+    throw new ValidationError("Ticket reason is required");
+  }
+
+  const item = await prisma.inventoryItem.findFirst({
+    where: {
+      id: input.itemId,
+      organizationId: membershipScope.organizationId,
+    },
+    select: { id: true },
+  });
+
+  if (!item) {
+    throw new NotFoundError("Inventory item not found for ticket");
+  }
+
+  return prisma.resourceTicket.create({
+    data: {
+      ticketNumber: buildTicketNumber(),
+      organizationId: membershipScope.organizationId,
+      requesterId: userId,
+      itemId: input.itemId,
+      quantity: input.quantity,
+      unit: input.unit?.trim() || "units",
+      type: input.type,
+      reason: input.reason.trim(),
+      notes: input.notes?.trim() || null,
+    },
+    select: {
+      id: true,
+      ticketNumber: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function updateResourceTicket(userId: string, ticketId: string, input: UpdateResourceTicketInput) {
+  const membershipScope = await getMembershipScope(userId);
+
+  const ticket = await prisma.resourceTicket.findUnique({
+    where: { id: ticketId },
+    select: { id: true, organizationId: true },
+  });
+
+  if (!ticket) {
+    throw new NotFoundError("Resource ticket not found");
+  }
+
+  if (ticket.organizationId !== membershipScope.organizationId) {
+    throw new ForbiddenError("This resource ticket is outside your organization scope");
+  }
+
+  const fulfilledAt = input.status === "FULFILLED" ? new Date() : undefined;
+  const approvedById = input.status === "APPROVED" || input.status === "FULFILLED" ? userId : undefined;
+
+  return prisma.resourceTicket.update({
+    where: { id: ticketId },
+    data: {
+      status: input.status,
+      notes: typeof input.notes === "string" ? input.notes.trim() || null : undefined,
+      fulfilledAt,
+      approvedById,
+    },
+    select: {
+      id: true,
+      status: true,
+      fulfilledAt: true,
+      approvedById: true,
       updatedAt: true,
     },
   });
