@@ -1,301 +1,173 @@
-# StarCitizenOps
+# Star Citizen Ops Logistics
 
-StarCitizenOps is a social operations-planning platform for Star Citizen organizations. It helps orgs coordinate joint fleet, ground, air, logistics, medical, and reconnaissance operations through shared planning tools, coalition management, member role assignments, and AI-generated operation briefs.
+Tool name: Drake Ops Logistics Ledger
 
-## Core Features
+This repository contains the logistics module for Star Citizen Ops, including:
+- member intake and request workflows
+- inventory, refining, and ticket archive flows
+- permission-gated route access beyond front page
+- Neon/Postgres-backed admin assignment endpoints
 
-- Organization profiles and member management
-- Alliance and coalition coordination
-- Operation creation and scheduling
-- Fleet, ground, air, and logistics asset planning
-- Member role assignments
-- RSVP and participation tracking
-- AI-generated operation briefs
-- Comments, notifications, and after-action reports
-- Dark tactical dashboard interface
+## Neon + Prisma setup
 
-## Tech Stack
+1. Create a Neon Postgres project.
+2. Copy the pooled connection string.
+3. Add environment variables:
 
-- Next.js App Router + TypeScript
-- Tailwind CSS + shadcn/ui
-- Prisma ORM + PostgreSQL
-- Auth.js / NextAuth credentials auth
-- Zod validation
-- Multi-provider AI (Gemini, Groq, OpenRouter, OpenAI)
-- Vercel-ready deployment
+```bash
+DATABASE_URL="postgresql://<user>:<pass>@<neon-host>/<db>?sslmode=require"
+STAROPS_DEFAULT_ROLE="LOGISTICS_ADMIN"
+STAROPS_DEFAULT_USER_ID="scops-user-001"
+STAROPS_DEFAULT_ORG_ID="org-demo-01"
+STAROPS_PERMISSION_BYPASS="false"
+```
 
-## MVP Status
+4. Generate Prisma client:
 
-The current MVP supports the core loop:
+```bash
+npx prisma generate
+```
 
-1. Register/login
-2. Edit profile
-3. Create organization
-4. Create operation
-5. Add assets and participants
-6. Generate AI operation plan
-7. View operation detail page
-8. RSVP and comment
-9. Track updates on dashboard
+5. Apply schema to Neon (development path):
 
-## Routes
+```bash
+npx prisma db push
+```
 
-- /
-- /login
-- /register
-- /dashboard
-- /profile
-- /profile/edit
-- /organizations
-- /organizations/new
-- /organizations/[id]
-- /organizations/[id]/edit
-- /operations
-- /operations/new
-- /operations/[id]
-- /operations/[id]/edit
-- /ai-planner
-- /notifications
-- /settings
-- /coalitions
-- /coalitions/new
-- /coalitions/[id]
-- /social
+## Permission model integration
 
-## Local Setup
+Server permission checks read Star Citizen Ops auth context from request headers:
+- x-scops-user-id
+- x-scops-org-id
+- x-scops-role
+- x-scops-permissions (comma-separated)
 
-1. Install dependencies:
+Protected routes:
+- /logistics requires logistics.tool.access + logistics.view
+- /logistics/admin requires logistics.settings.manage or logistics.admins.assign
+
+Admin assignment API:
+- GET /api/logistics/admins
+- POST /api/logistics/admins
+- DELETE /api/logistics/admins
+
+Tool registration endpoint:
+- GET /api/tools/ops-logistics-ledger
+
+## Run
 
 ```bash
 npm install
+npm test
+npm run build
+npm run start -- -p 3000
 ```
 
-1. Copy environment file:
+## Repository file index
 
-```bash
-cp .env.example .env
+The following tree documents the current project files and folders used by the app (generated directories such as `.next/` and dependency directories such as `node_modules/` are excluded):
+
+```text
+.
+|-- .env.example
+|-- .gitignore
+|-- README.md
+|-- next-env.d.ts
+|-- next.config.js
+|-- package-lock.json
+|-- package.json
+|-- tsconfig.json
+|-- tsconfig.tsbuildinfo
+|-- vitest.config.ts
+|-- star-citizen-invantory-and-industrial-.zip
+|-- app/
+|   |-- globals.css
+|   |-- layout.tsx
+|   |-- page.tsx
+|   |-- api/
+|   |   |-- health/route.ts
+|   |   |-- logistics/
+|   |   |   |-- admins/route.ts
+|   |   |   |-- catalog-sync/route.ts
+|   |   |   `-- scan/route.ts
+|   |   `-- tools/
+|   |       `-- ops-logistics-ledger/route.ts
+|   `-- logistics/
+|       |-- layout.tsx
+|       |-- page.tsx
+|       |-- admin/page.tsx
+|       |-- materials/page.tsx
+|       |-- refinery/page.tsx
+|       |-- requests/page.tsx
+|       |-- scanner/page.tsx
+|       `-- stock/page.tsx
+|-- docs/
+|   `-- logistics/
+|       |-- AI-SCANNER.md
+|       |-- ARCHITECTURE.md
+|       |-- DATABASE.md
+|       |-- DISCORD.md
+|       |-- EXPORTS.md
+|       |-- GOOGLE-SHEETS.md
+|       |-- IMPLEMENTATION-PLAN.md
+|       |-- IMPORTS.md
+|       |-- ITEM-RESEARCH-AND-ENTRY-MODEL.md
+|       |-- MINING-STOCKKEEPING-RESEARCH.md
+|       |-- ORE-QUALITY-MARKERS.md
+|       |-- PERMISSIONS.md
+|       |-- README.md
+|       `-- STAROPS-LIVE-HANDOVER.md
+|-- prisma/
+|   `-- schema.prisma
+|-- scripts/
+|   `-- ensure-vitest-jsx.cjs
+`-- src/
+	|-- app/
+	|   |-- globals.css
+	|   |-- layout.tsx
+	|   `-- page.tsx
+	|-- components/
+	|   |-- AdminActionPanel.tsx
+	|   |-- LogisticsAdminAssignmentPanel.tsx
+	|   |-- ManualStockEditor.tsx
+	|   |-- MemberSubmissionPortal.tsx
+	|   |-- OrgAccessGate.tsx
+	|   |-- OrgMembershipGate.tsx
+	|   |-- ResourceRequestForm.tsx
+	|   |-- forms-and-portal.test.tsx
+	|   `-- logistics/
+	|       |-- AdminTabs.tsx
+	|       |-- DashboardPanel.tsx
+	|       |-- RefineryPanel.tsx
+	|       |-- StockPanel.tsx
+	|       `-- TicketsPanel.tsx
+	|-- data/
+	|   |-- logistics-catalog.ts
+	|   |-- logistics-demo.ts
+	|   `-- materials-demo.ts
+	|-- lib/
+	|   |-- access.ts
+	|   |-- ai-scanner-client.ts
+	|   |-- catalog-sync-client.ts
+	|   |-- catalog-sync.ts
+	|   |-- logistics-permissions.ts
+	|   |-- org-membership.ts
+	|   |-- prisma.ts
+	|   |-- server-permissions.ts
+	|   `-- tool-config.ts
+	|-- modules/
+	|   `-- logistics/
+	|       |-- index.ts
+	|       |-- services.ts
+	|       `-- types.ts
+	`-- test/
+		`-- setup.ts
 ```
 
-1. Configure `DATABASE_URL` and auth secrets in `.env`.
-
-1. Start local PostgreSQL with Docker Compose:
-
-```bash
-docker compose up -d postgres
-```
-
-Default local database connection:
-
-```bash
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/starcitizenops?schema=public"
-DIRECT_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/starcitizenops?schema=public"
-```
-
-Neon production connection setup:
-
-```bash
-# Runtime app traffic (pooled connection string from Neon)
-DATABASE_URL="postgresql://<user>:<password>@<pooled-host>.neon.tech/<db>?sslmode=require"
-
-# Prisma migrations (direct, non-pooled Neon host)
-DIRECT_DATABASE_URL="postgresql://<user>:<password>@<direct-host>.neon.tech/<db>?sslmode=require"
-```
-
-1. Generate Prisma client:
-
-```bash
-npm run prisma:generate
-```
-
-1. Run migrations:
-
-```bash
-npm run prisma:migrate
-```
-
-1. Seed demo data:
-
-```bash
-npm run db:seed
-```
-
-1. Start development server:
-
-```bash
-npm run dev
-```
-
-## Environment Variables
-
-- DATABASE_URL
-- DIRECT_DATABASE_URL
-- NEXTAUTH_SECRET
-- NEXTAUTH_URL
-- AI_PROVIDER
-- GEMINI_API_KEY
-- GEMINI_MODEL (optional)
-- GROQ_API_KEY
-- GROQ_MODEL (optional)
-- OPENROUTER_API_KEY
-- OPENROUTER_MODEL (optional)
-- OPENAI_API_KEY
-- OPENAI_BASE_URL (optional)
-- OPENAI_MODEL (optional)
-
-## Prisma Commands
-
-- `npm run prisma:generate`
-- `npm run prisma:migrate`
-- `npm run prisma:studio`
-- `npm run db:seed`
-
-## Authentication
-
-- Credentials-based login/register with hashed passwords
-- Session handling via NextAuth
-- Middleware-protected routes for dashboard, profile, organizations, operations, AI planner, notifications, settings, and coalitions
-
-## Free AI Provider Setup
-
-StarCitizenOps supports multiple AI providers from the backend API route. The frontend never receives API keys.
-
-### Supported Providers
-
-- **Gemini**: Has a free tier via Google AI Studio.
-- **Groq**: Has a free tier with rate limits.
-- **OpenRouter**: Offers free model options that can change over time.
-- **OpenAI**: Typically requires billing credits or paid API usage.
-
-### Optional No-Key Gemini Fallback (Browser)
-
-If server-side keys are not configured, the AI planner can fall back to Puter Gemini in the browser:
-
-`<script src="https://js.puter.com/v2/"></script>`
-
-Notes:
-
-- Primary flow is still server-side (`/api/ai-planner`).
-- Fallback is used only when the server returns provider-not-configured.
-- This fallback does not require storing your own Gemini API key in `.env`.
-
-### Configure `.env`
-
-Set your provider and key in `.env`:
-
-```bash
-AI_PROVIDER=gemini
-
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_BASE_URL=
-
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.5-flash
-
-GROQ_API_KEY=
-GROQ_MODEL=llama-3.3-70b-versatile
-
-OPENROUTER_API_KEY=
-OPENROUTER_MODEL=openrouter/free
-```
-
-Provider behavior:
-
-- If `AI_PROVIDER` is set, that provider is used.
-- If `AI_PROVIDER` is empty, the server auto-selects in this order:
-  1. Gemini (if `GEMINI_API_KEY` exists)
-  2. Groq (if `GROQ_API_KEY` exists)
-  3. OpenRouter (if `OPENROUTER_API_KEY` exists)
-  4. OpenAI (if `OPENAI_API_KEY` exists)
-
-### Security Rules
-
-- Put API keys only in `.env` (local) or deployment environment variables.
-- Never expose API keys in frontend code.
-- Never commit `.env` to GitHub.
-- The AI request flow is:
-  `AIPlannerPanel -> POST /api/ai-planner -> server-only provider wrapper -> selected AI provider`
-
-## Deployment (Vercel)
-
-1. Push repository to GitHub.
-2. Import project into Vercel.
-3. Add all required environment variables in Vercel project settings.
-4. Provision Neon PostgreSQL and set both `DATABASE_URL` (pooled) and `DIRECT_DATABASE_URL` (direct).
-5. Run migrations in CI/CD or manually before first production boot with `npx prisma migrate deploy`.
-6. Deploy.
-
-## Live Weekly Auto-Refresh
-
-When deployed, StarCitizenOps can auto-refresh mission data weekly via Vercel cron.
-
-Configured cron routes:
-
-- `/api/cron/mission-intelligence` (daily at 03:00 UTC)
-- `/api/cron/weekly-live-refresh` (weekly on Monday at 04:00 UTC)
-- `/api/cron/weekly-mission-seed-sync` (weekly on Monday at 04:30 UTC)
-
-Required environment variables in production:
-
-- `CRON_SECRET` (must match Vercel cron Authorization bearer secret)
-- `MISSION_INTELLIGENCE_ENABLED=true`
-- `WEEKLY_DATA_REFRESH_ENABLED=true`
-- `WEEKLY_MISSION_SEED_SYNC_ENABLED=true` (enable only when you want automatic full mission seed resets)
-
-What the weekly route does:
-
-1. Runs mission intelligence ingestion (when enabled) to process new RSI source updates.
-2. Returns mission-library health summary (template count + latest mission intelligence run status).
-
-Notes:
-
-- Ship catalog updates are code-based and ship with app deployments.
-- Mission seed-library resets remain available via the existing maintenance script:
-  `npx tsx scripts/sync-real-sc-missions.ts`
-- The `/api/cron/weekly-mission-seed-sync` route performs the same full seed reset via cron when enabled.
-
-You can trigger it manually for verification:
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://<your-domain>/api/cron/weekly-live-refresh
-```
-
-## MVP Roadmap (Completed in this Stage)
-
-- Base full-stack scaffold with tactical dark UI
-- Prisma schema for operations ecosystem
-- Auth flow and protected routes
-- Core profile/org/operation creation flow
-- Asset + participant + RSVP + comment loop
-- AI planner generation + persistence
-- Dashboard + notifications + coalition basics
-
-## Future Roadmap (TODO)
-
-- Deeper alliance workflows and federation controls
-- Advanced role-based permissions and policy editor
-- Public org/operation discovery
-- Real-time live chat and command voice integrations
-- Calendar integrations and timeline syncing
-- Discord integration for announcements and signups
-- In-app map overlays and tactical route tools
-- Rich after-action analytics and replay views
-
-## Seeded Test Users
-
-Running the seed script provisions mock accounts with password `password123`:
-
-- commander@starcitizenops.local (Aegis Command, org commander/owner)
-- pilot@starcitizenops.local
-- medic@starcitizenops.local
-- recon@starcitizenops.local
-- logistics@starcitizenops.local
-- marine@starcitizenops.local
-
-The seed also creates:
-
-- A full primary org (Aegis Vanguard) with multi-role members
-- A partner org (Atlas Freight Group)
-- Coalition and alliance links
-- A live social conversation with sample messages and reactions
-- Follow relationships for social testing
+## Live deployment handoff for Star Citizen Ops
+
+1. Configure Neon DATABASE_URL in deployment environment.
+2. Configure upstream auth proxy/provider to forward x-scops-* headers.
+3. Run npx prisma db push as part of release migration step.
+4. Deploy this Next.js app to your Star Citizen Ops frontend provider.
+5. Add Drake Ops Logistics Ledger link in Star Citizen Ops Tools menu to /logistics.

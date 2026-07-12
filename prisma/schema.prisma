@@ -1,1282 +1,372 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
 }
 
-enum SiteRole {
-  SITE_ADMIN
-  MEMBER
-  GUEST
+model Organisation {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logisticsSettings LogisticsOrganisationSettings?
+  inventoryItems    InventoryItem[]
+  inventoryLocations InventoryLocation[]
+  inventoryTransactions InventoryTransaction[]
+  balances          InventoryBalance[]
+  memberCustody     MemberCustody[]
+  equipmentRequests EquipmentRequest[]
+  reservations      StockReservation[]
+  scans             StockScan[]
+  imports           InventoryImport[]
+  spreadsheetConnections SpreadsheetConnection[]
+  auditLogs         LogisticsAuditLog[]
 }
 
-enum OrganizationFocusType {
-  MILITARY
-  LOGISTICS
-  MINING
-  SALVAGE
-  PIRACY
-  SECURITY
-  EXPLORATION
-  TRADE
-  MEDICAL
-  RACING
-  MIXED
-}
-
-enum OrganizationVisibility {
-  PUBLIC
-  PRIVATE
-}
-
-enum OrganizationMemberRole {
-  OWNER
-  OFFICER
-  COMMANDER
-  TEAM_LEADER
-  MEMBER
-  GUEST
-}
-
-enum OperationType {
-  FLEET_PATROL
-  GROUND_ASSAULT
-  BOUNTY_OPERATION
-  CARGO_CONVOY
-  MINING_SECURITY
-  SALVAGE_OPERATION
-  RESCUE_OPERATION
-  MEDICAL_SUPPORT_OPERATION
-  EXPLORATION_MISSION
-  BASE_DEFENSE
-  JOINT_FLEET_EXERCISE
-  COMBINED_ARMS_ASSAULT
-  PIRACY_INTERDICTION
-  ANTI_PIRACY_ESCORT
-  CUSTOM_OPERATION
-}
-
-enum OperationStatus {
-  DRAFT
-  PLANNED
-  BRIEFING
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
-
-enum ThreatLevel {
-  LOW
-  MODERATE
-  HIGH
-  CRITICAL
-}
-
-enum RSVPStatus {
-  GOING
-  MAYBE
-  DECLINED
-  STANDBY
-}
-
-enum NotificationType {
-  ORG_INVITE
-  OP_ASSIGNMENT
-  OP_UPDATE
-  COMMENT_MENTION
-  COALITION_INVITE
-  AI_PLAN_GENERATED
-  MISSION_INTELLIGENCE
-  SYSTEM
-}
-
-enum SocialPostType {
-  TOPIC
-  QUESTION
-  GUIDELINE
-}
-
-enum OrganizationInviteStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELLED
-  EXPIRED
-}
-
-enum OrganizationJoinRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELLED
-}
-
-enum ExternalUpdateSourceType {
-  RSI_COMM_LINK
-  RSI_PATCH_NOTES
-  RSI_DEV_TRACKER
-  WIKI
-  COMMUNITY
-  MANUAL
-}
-
-enum ExternalUpdateItemStatus {
-  NEW
-  PROCESSED
-  IGNORED
-  ERROR
-}
-
-enum MissionSuggestionReviewStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  NEEDS_EDIT
-  MERGED
-}
-
-enum MissionIntelligenceRunStatus {
-  RUNNING
-  SUCCESS
-  PARTIAL_SUCCESS
-  FAILED
-}
-
-enum AssetType {
-  FLEET_SHIP
-  FIGHTER
-  DROPSHIP
-  CARGO_SHIP
-  MEDICAL_SHIP
-  SALVAGE_SHIP
-  MINING_SHIP
-  GROUND_VEHICLE
-  SUPPORT_VEHICLE
-  INFANTRY_SQUAD
-  LOGISTICS_PACKAGE
-  OTHER
-}
-
-enum MissionDifficulty {
-  EASY
-  MEDIUM
-  HARD
-  EXTREME
-}
-
-enum MissionRewardType {
-  aUEC
-  REPUTATION
-  LOOT
-  RESOURCES
-  TRAINING
-  RECRUITMENT
-  DIPLOMACY
-  ROLEPLAY
-  ORG_READINESS
-  FUN_SOCIAL
-}
-
-enum ShipRole {
-  FIGHTER
-  HEAVY_FIGHTER
-  BOMBER
-  INTERCEPTOR
-  GUNSHIP
-  CORVETTE
-  CAPITAL
-  CARGO
-  MEDICAL
-  REFUEL
-  REPAIR
-  SALVAGE
-  MINING
-  EXPLORATION
-  SCOUT
-  DROPSHIP
-  TRANSPORT
-  RACING
-  SUPPORT
-  MULTI_ROLE
-  OTHER
-}
-
-enum ShipSize {
-  SNUB
-  SMALL
-  MEDIUM
-  LARGE
-  CAPITAL
-}
-
-enum AssetStatus {
-  AVAILABLE
-  UNAVAILABLE
-  LOANER
-  IN_GAME_RENTAL
-  IN_GAME_PURCHASED
-  PLEDGED
-  UNKNOWN
-}
-
-enum InventoryItemCategory {
-  RAW_ORE
-  REFINED_MATERIAL
-  COMPONENT
-  CONSUMABLE
-  AMMUNITION
-  FUEL
-  SALVAGE
-  CARGO
-  OTHER
-}
-
-enum IndustrialJobType {
-  MINING
-  REFINING
-  SALVAGE
-  MANUFACTURING
-  HAULING
-  TRADE
-  OTHER
-}
-
-enum IndustrialJobStatus {
-  PLANNED
-  ACTIVE
-  BLOCKED
-  COMPLETED
-  CANCELLED
-}
-
-enum RefineryRunStatus {
-  INTAKE
-  PROCESSING
-  READY_FOR_OUTPUT
-  COMPLETED
-  CANCELLED
-}
-
-enum ResourceTicketType {
-  ISSUE
-  RETURN
-  ADJUSTMENT
-}
-
-enum ResourceTicketStatus {
-  OPEN
-  APPROVED
-  FULFILLED
-  CANCELLED
-}
-
-enum VehicleRole {
-  COMBAT
-  TRANSPORT
-  MINING
-  EXPLORATION
-  RACING
-  SUPPORT
-  CARGO
-  OTHER
-}
-
-enum VehicleSize {
-  SMALL
-  MEDIUM
-  LARGE
-}
-
-model User {
-  id                 String                 @id @default(cuid())
-  name               String?
-  email              String?                @unique
-  emailVerified      DateTime?
-  passwordHash       String?
-  image              String?
-  starCitizenHandle  String?
-  bio                String?
-  timezone           String?
-  availability       String?
-  preferredRoles     String[]               @default([])
-  siteRole           SiteRole               @default(MEMBER)
-  twoFactorEnabled   Boolean                @default(false)
-  twoFactorMethod    String?
-  twoFactorSecret    String?
-  twoFactorEmailCode String?
-  twoFactorEmailCodeExpiry DateTime?
-  passwordResetToken String?                @unique
-  passwordResetExpiry DateTime?
-  // Discord account link
-  discordUserId      String?                @unique
-  discordUsername    String?
-  termsAcceptedAt    DateTime?
-  termsAcceptedVersion String?
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  accounts           Account[]
-  sessions           Session[]
-  organizationsOwned Organization[]         @relation("OrganizationOwner")
-  orgMemberships     OrganizationMember[]
-  alliancesCreated   Alliance[]
-  coalitionsCreated  Coalition[]
-  operationsCommanded Operation[]           @relation("OperationCommander")
-  operationParticipants OperationParticipant[]
-  operationAssetsOwned OperationAsset[]     @relation("UserOwnedAssets")
-  ships              Ship[]
-  groundVehicles     GroundVehicle[]
-  roleAssignments    RoleAssignment[]
-  comments           Comment[]
-  notifications      Notification[]
-  aiGeneratedPlans   AIGeneratedPlan[]
-  afterActionReports AfterActionReport[]    @relation("AARAuthor")
-  rsvps              RSVP[]
-  activityFeedItems  ActivityFeedItem[]
-  missionSuggestionReviews MissionSuggestion[] @relation("MissionSuggestionReviewer")
-  organizationInvitesSent OrganizationInvite[] @relation("OrganizationInvitesSent")
-  organizationInvitesReceived OrganizationInvite[] @relation("OrganizationInvitesReceived")
-  organizationJoinRequests OrganizationJoinRequest[] @relation("OrganizationJoinRequests")
-  organizationJoinRequestsReviewed OrganizationJoinRequest[] @relation("OrganizationJoinRequestsReviewed")
-  followers          UserFollow[]              @relation("UserFollowTarget")
-  following          UserFollow[]              @relation("UserFollowSource")
-  conversationsCreated Conversation[]
-  conversationMemberships ConversationParticipant[]
-  conversationReadStates ConversationReadState[]
-  channelAccesses    ConversationChannelAccess[] @relation("ConversationChannelAccessUser")
-  channelAccessGrants ConversationChannelAccess[] @relation("ConversationChannelAccessGrantedBy")
-  sentMessages       Message[]
-  pollsCreated       Poll[]
-  pollVotes          PollVote[]
-  conversationGroupsCreated ConversationGroup[]
-  messageReactions   MessageReaction[]
-  commentReactions   CommentReaction[]
-  socialCategories   SocialCategory[]
-  socialPosts        SocialPost[]
-  socialPostReplies  SocialPostReply[]
-  customRanksCreated OrganizationCustomRank[]
-  inventoryLocationsOwned InventoryLocation[]    @relation("InventoryLocationOwner")
-  inventoryItemsOwned InventoryItem[]            @relation("InventoryItemOwner")
-  inventoryItemUpdates InventoryItem[]           @relation("InventoryItemLastUpdatedBy")
-  industrialJobsCreated IndustrialJob[]          @relation("IndustrialJobCreator")
-  refineryRunsCreated RefineryRun[]              @relation("RefineryRunCreator")
-  resourceTicketsRequested ResourceTicket[]      @relation("ResourceTicketRequester")
-  resourceTicketsApproved ResourceTicket[]       @relation("ResourceTicketApprover")
-}
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-}
-
-model Organization {
-  id            String                 @id @default(cuid())
-  name          String
-  tag           String                 @unique
-  description   String?
-  starCitizenVerified Boolean          @default(false)
-  starCitizenVerificationCheckedAt DateTime?
-  focusType     OrganizationFocusType  @default(MIXED)
-  visibility    OrganizationVisibility @default(PUBLIC)
-  logoUrl       String?
-  bannerUrl     String?
-  joinQuestionHandle       String      @default("Star Citizen Username")
-  joinQuestionPreferredRole String     @default("Preferred Role")
-  joinQuestionAvailability  String     @default("Weekly Availability")
-  joinQuestionReason        String     @default("Why do you want to join?")
-  ownerId       String
-  // Discord integration
-  discordGuildId              String?
-  discordBotToken             String?
-  discordOperationsChannelId  String?
-  discordRoleSyncEnabled      Boolean                @default(false)
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  owner         User                   @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members       OrganizationMember[]
-  alliances     AllianceMember[]
-  coalitions    CoalitionMember[]
-  operations    Operation[]
-  operationParticipants OperationParticipant[]
-  operationAssetsOwned  OperationAsset[] @relation("OrgOwnedAssets")
-  activityFeedItems     ActivityFeedItem[]
-  invites              OrganizationInvite[]
-  joinRequests         OrganizationJoinRequest[]
-  conversations        Conversation[]
-  conversationGroups   ConversationGroup[]
-  customRanks          OrganizationCustomRank[]
-  socialPosts          SocialPost[]
-  inventoryLocations   InventoryLocation[]
-  inventoryItems       InventoryItem[]
-  industrialJobs       IndustrialJob[]
-  refineryRuns         RefineryRun[]
-  resourceTickets      ResourceTicket[]
-}
-
-model OrganizationMember {
-  id             String                 @id @default(cuid())
-  userId         String
-  organizationId String
-  role           OrganizationMemberRole @default(MEMBER)
-  customRankId   String?
-  title          String?
-  joinedAt       DateTime               @default(now())
-  appPrivileges  OrganizationMemberAppPrivilege?
-  customRank     OrganizationCustomRank? @relation(fields: [customRankId], references: [id], onDelete: SetNull)
-  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, organizationId])
-}
-
-model OrganizationCustomRank {
-  id             String                               @id @default(cuid())
-  organizationId String
-  name           String
-  description    String?
-  baseRole       OrganizationMemberRole              @default(MEMBER)
-  position       Int                                  @default(0)
-  createdById    String
-  createdAt      DateTime                             @default(now())
-  updatedAt      DateTime                             @updatedAt
-  appPrivileges  OrganizationCustomRankAppPrivilege?
-  members        OrganizationMember[]
-  organization   Organization                         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy      User                                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, name])
-  @@index([organizationId, position])
-}
-
-model OrganizationCustomRankAppPrivilege {
-  id                     String                 @id @default(cuid())
-  organizationCustomRankId String              @unique
-  editOrganization       Boolean?
-  inviteMembers          Boolean?
-  createOperation        Boolean?
-  editOperation          Boolean?
-  assignRoles            Boolean?
-  inviteOrganizations    Boolean?
-  viewPrivateOperations  Boolean?
-  postAfterActionReports Boolean?
-  manageChannels         Boolean?
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  organizationCustomRank OrganizationCustomRank @relation(fields: [organizationCustomRankId], references: [id], onDelete: Cascade)
-}
-
-model OrganizationMemberAppPrivilege {
-  id                    String              @id @default(cuid())
-  organizationMemberId  String              @unique
-  editOrganization      Boolean?
-  inviteMembers         Boolean?
-  createOperation       Boolean?
-  editOperation         Boolean?
-  assignRoles           Boolean?
-  inviteOrganizations   Boolean?
-  viewPrivateOperations Boolean?
-  postAfterActionReports Boolean?
-  manageChannels        Boolean?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  organizationMember    OrganizationMember  @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
-}
-
-model OrganizationInvite {
-  id             String                   @id @default(cuid())
-  organizationId String
-  inviterId      String
-  invitedUserId  String?
-  email          String
-  role           OrganizationMemberRole   @default(MEMBER)
-  message        String?
-  status         OrganizationInviteStatus @default(PENDING)
-  expiresAt      DateTime?
-  respondedAt    DateTime?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  inviter        User                     @relation("OrganizationInvitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
-  invitedUser    User?                    @relation("OrganizationInvitesReceived", fields: [invitedUserId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, status])
-  @@index([email, status])
-  @@index([invitedUserId, status])
-}
-
-model OrganizationJoinRequest {
-  id             String                        @id @default(cuid())
-  organizationId String
-  userId         String
-  applicantHandle String
-  preferredRole  String
-  weeklyAvailability String
-  reasonToJoin   String
-  message        String?
-  status         OrganizationJoinRequestStatus @default(PENDING)
-  reviewedById   String?
-  reviewedAt     DateTime?
-  createdAt      DateTime                      @default(now())
-  updatedAt      DateTime                      @updatedAt
-  organization   Organization                  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User                          @relation("OrganizationJoinRequests", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy     User?                         @relation("OrganizationJoinRequestsReviewed", fields: [reviewedById], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, status])
-  @@index([userId, status])
-}
-
-model Alliance {
-  id          String           @id @default(cuid())
-  name        String
-  description String?
-  createdById String
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  createdBy   User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  members     AllianceMember[]
-}
-
-model AllianceMember {
-  id             String       @id @default(cuid())
-  allianceId     String
-  organizationId String
-  joinedAt       DateTime     @default(now())
-  alliance       Alliance     @relation(fields: [allianceId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([allianceId, organizationId])
-}
-
-model Coalition {
-  id          String            @id @default(cuid())
-  name        String
-  description String?
-  operationId String?
-  createdById String
-  commandNotes String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  operation   Operation?        @relation("CoalitionOperationRef", fields: [operationId], references: [id])
-  createdBy   User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  members     CoalitionMember[]
-  operations  Operation[]
-}
-
-model CoalitionMember {
-  id             String       @id @default(cuid())
-  coalitionId    String
-  organizationId String
-  responsibility String?
-  joinedAt       DateTime     @default(now())
-  coalition      Coalition    @relation(fields: [coalitionId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([coalitionId, organizationId])
-}
-
-model Operation {
-  id                String            @id @default(cuid())
-  title             String
-  type              OperationType
-  description       String?
-  objective         String?
-  location          String?
-  threatLevel       ThreatLevel       @default(MODERATE)
-  startTime         DateTime?
-  endTime           DateTime?
-  status            OperationStatus   @default(PLANNED)
-  visibility        OrganizationVisibility @default(PUBLIC)
-  commanderId       String
-  organizationId    String
-  coalitionId       String?
-  missionTemplateId String?
-  missionBrief      String?
-  commsPlan         String?
-  rulesOfEngagement String?
-  rallyPoints       String?
-  extractionPlan    String?
-  contingencyPlans  String?
-  requiredSupplies  String?
-  requiredShips     String?
-  requiredGroundVehicles String?
-  requiredPersonnel String?
-  missionPhases     String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  commander         User              @relation("OperationCommander", fields: [commanderId], references: [id], onDelete: Cascade)
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  coalition         Coalition?        @relation(fields: [coalitionId], references: [id])
-  coalitionReferences Coalition[]     @relation("CoalitionOperationRef")
-  missionTemplate   MissionTemplate?  @relation(fields: [missionTemplateId], references: [id], onDelete: SetNull)
-  participants      OperationParticipant[]
-  assets            OperationAsset[]
-  roleAssignments   RoleAssignment[]
-  comments          Comment[]
-  aiPlans           AIGeneratedPlan[]
-  afterActionReports AfterActionReport[]
-  rsvps             RSVP[]
-  activityFeedItems ActivityFeedItem[]
-}
-
-model OperationParticipant {
-  id             String       @id @default(cuid())
-  operationId    String
-  userId         String
-  organizationId String?
-  assignedRole   String?
-  team           String?
-  status         RSVPStatus   @default(STANDBY)
-  createdAt      DateTime     @default(now())
-  operation      Operation    @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-
-  @@unique([operationId, userId])
-}
-
-model OperationAsset {
-  id                  String       @id @default(cuid())
-  operationId         String
-  ownerUserId         String?
-  ownerOrganizationId String?
-  assetType           AssetType
-  name                String
-  manufacturer        String?
-  role                String?
-  size                String?
-  category            String?
-  quantity            Int          @default(1)
-  assignedTo          String?
-  notes               String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  operation           Operation    @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  ownerUser           User?        @relation("UserOwnedAssets", fields: [ownerUserId], references: [id])
-  ownerOrganization   Organization? @relation("OrgOwnedAssets", fields: [ownerOrganizationId], references: [id])
-}
-
-model Ship {
-  id           String      @id @default(cuid())
-  userId       String
-  name         String
-  manufacturer String      @default("Unknown")
-  role         ShipRole    @default(OTHER)
-  size         ShipSize    @default(SMALL)
-  quantity     Int         @default(1)
-  status       AssetStatus @default(AVAILABLE)
-  notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model GroundVehicle {
-  id           String      @id @default(cuid())
-  userId       String
-  name         String
-  manufacturer String      @default("Unknown")
-  role         VehicleRole @default(OTHER)
-  size         VehicleSize @default(SMALL)
-  quantity     Int         @default(1)
-  status       AssetStatus @default(AVAILABLE)
-  notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model InventoryLocation {
-  id             String        @id @default(cuid())
-  name           String
-  description    String?
-  organizationId String
-  ownerId        String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  owner          User          @relation("InventoryLocationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  items          InventoryItem[]
-
-  @@index([organizationId, name])
-  @@index([ownerId])
+model LogisticsOrganisationSettings {
+  id                      String   @id @default(cuid())
+  organisationId          String   @unique
+  organisation            Organisation @relation(fields: [organisationId], references: [id])
+  logisticsEnabled        Boolean  @default(true)
+  defaultCurrency         String?  @default("USD")
+  defaultDateFormat       String   @default("YYYY-MM-DD")
+  defaultExportTemplate   String   @default("default")
+  requireScanApproval     Boolean  @default(true)
+  minimumAiConfidence     Float    @default(0.75)
+  allowMemberRequests     Boolean  @default(true)
+  allowDiscordRequests    Boolean  @default(true)
+  allowGoogleSheetsSync   Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model InventoryItem {
-  id              String                @id @default(cuid())
-  organizationId  String
-  ownerId         String
-  locationId      String?
-  name            String
-  category        InventoryItemCategory @default(OTHER)
-  quantity        Int                   @default(0)
-  unit            String                @default("units")
-  sku             String?
-  notes           String?
-  lastUpdatedById String
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  owner           User                  @relation("InventoryItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  location        InventoryLocation?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  lastUpdatedBy   User                  @relation("InventoryItemLastUpdatedBy", fields: [lastUpdatedById], references: [id], onDelete: Cascade)
-  industrialJobsTargeting IndustrialJob[]
-  refineryRunsInput RefineryRun[]       @relation("RefineryRunInputItem")
-  refineryRunsOutput RefineryRun[]      @relation("RefineryRunOutputItem")
-  resourceTickets  ResourceTicket[]
+  id                String   @id @default(cuid())
+  organisationId    String
+  organisation      Organisation @relation(fields: [organisationId], references: [id])
+  catalogueItemId   String?
+  itemName          String
+  manufacturer      String?
+  category          String?
+  subcategory       String?
+  armourClass       String?
+  weaponType        String?
+  variant           String?
+  colour            String?
+  description       String?
+  imageUrl          String?
+  stockCode         String?
+  reorderLevel      Int      @default(0)
+  isRestricted      Boolean  @default(false)
+  isConsumable      Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  @@index([organizationId, category])
-  @@index([locationId])
-  @@index([ownerId])
-  @@index([lastUpdatedById])
-  @@unique([organizationId, name, sku])
+  aliases           InventoryItemAlias[]
+  locations         InventoryBalance[]
+  transactions      InventoryTransactionLine[]
+  custody           MemberCustody[]
+  requestLines      EquipmentRequestLine[]
+  reservations      StockReservation[]
+  scansDetected     StockScanDetectedItem[]
+  importRows        InventoryImportRow[]
 }
 
-model IndustrialJob {
-  id                String             @id @default(cuid())
-  organizationId    String
-  createdById       String
-  title             String
-  jobType           IndustrialJobType
-  status            IndustrialJobStatus @default(PLANNED)
-  priority          Int                @default(3)
-  targetItemId      String?
-  quantityTarget    Int?
-  quantityCompleted Int                @default(0)
-  dueAt             DateTime?
-  startAt           DateTime?
-  completedAt       DateTime?
+model InventoryItemAlias {
+  id                String   @id @default(cuid())
+  organisationId    String
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  alias             String
+  normalisedAlias   String
+  source            String   @default("manual")
+  createdAt         DateTime @default(now())
+}
+
+model InventoryLocation {
+  id                String   @id @default(cuid())
+  organisationId    String
+  organisation      Organisation @relation(fields: [organisationId], references: [id])
+  parentLocationId  String?
+  name              String
+  type              String
+  systemName        String?
+  planetName        String?
+  stationName       String?
+  shipId            String?
+  description       String?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  balances          InventoryBalance[]
+  sourceTransactions InventoryTransaction[] @relation("SourceLocation")
+  destinationTransactions InventoryTransaction[] @relation("DestinationLocation")
+  reservations      StockReservation[]
+  scans             StockScan[]
+  imports           InventoryImportRow[]
+  spreadsheetConnections SpreadsheetConnection[]
+}
+
+model InventoryTransaction {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  organisation          Organisation @relation(fields: [organisationId], references: [id])
+  transactionNumber     String   @unique
+  transactionType       String
+  sourceLocationId      String?
+  sourceLocation        InventoryLocation? @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destinationLocationId String?
+  destinationLocation   InventoryLocation? @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  memberId              String?
+  operationId           String?
+  requestId             String?
+  importId              String?
+  stockScanId           String?
+  status                String   @default("APPROVED")
+  reason                String
+  notes                 String?
+  createdByUserId       String
+  approvedByUserId      String?
+  createdAt             DateTime @default(now())
+  approvedAt            DateTime?
+  reversedTransactionId String?
+
+  lines                 InventoryTransactionLine[]
+}
+
+model InventoryTransactionLine {
+  id                String   @id @default(cuid())
+  transactionId     String
+  transaction       InventoryTransaction @relation(fields: [transactionId], references: [id])
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity          Int
+  condition         String   @default("GOOD")
+  unitReference     String?
   notes             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy         User               @relation("IndustrialJobCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  targetItem        InventoryItem?     @relation(fields: [targetItemId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, status])
-  @@index([createdById])
-  @@index([targetItemId])
-  @@index([dueAt])
+  createdAt         DateTime @default(now())
 }
 
-model RefineryRun {
-  id             String            @id @default(cuid())
-  organizationId String
-  createdById    String
-  inputItemId    String
-  outputItemId   String?
-  intakeQuantity Int
-  outputQuantity Int?
-  wasteQuantity  Int?
-  status         RefineryRunStatus @default(INTAKE)
-  startedAt      DateTime          @default(now())
-  completedAt    DateTime?
-  notes          String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy      User              @relation("RefineryRunCreator", fields: [createdById], references: [id], onDelete: Cascade)
-  inputItem      InventoryItem     @relation("RefineryRunInputItem", fields: [inputItemId], references: [id], onDelete: Cascade)
-  outputItem     InventoryItem?    @relation("RefineryRunOutputItem", fields: [outputItemId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, status])
-  @@index([inputItemId])
-  @@index([outputItemId])
+model InventoryBalance {
+  id                String   @id @default(cuid())
+  organisationId    String
+  organisation      Organisation @relation(fields: [organisationId], references: [id])
+  inventoryItemId    String
+  inventoryItem      InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  locationId         String
+  location          InventoryLocation @relation(fields: [locationId], references: [id])
+  totalQuantity     Int      @default(0)
+  availableQuantity Int      @default(0)
+  reservedQuantity  Int      @default(0)
+  issuedQuantity    Int      @default(0)
+  damagedQuantity   Int      @default(0)
+  lastTransactionAt DateTime?
+  updatedAt         DateTime @updatedAt
 }
 
-model ResourceTicket {
-  id             String               @id @default(cuid())
-  ticketNumber   String               @unique
-  organizationId String
-  requesterId    String
-  approvedById   String?
-  itemId         String
-  quantity       Int
-  unit           String               @default("units")
-  type           ResourceTicketType
-  status         ResourceTicketStatus @default(OPEN)
-  reason         String
-  notes          String?
-  fulfilledAt    DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  requester      User                 @relation("ResourceTicketRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  approvedBy     User?                @relation("ResourceTicketApprover", fields: [approvedById], references: [id], onDelete: SetNull)
-  item           InventoryItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, status])
-  @@index([itemId])
-  @@index([requesterId])
+model MemberCustody {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  organisation        Organisation @relation(fields: [organisationId], references: [id])
+  memberId            String
+  inventoryItemId     String
+  inventoryItem       InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantityIssued      Int
+  quantityReturned    Int      @default(0)
+  quantityOutstanding Int      @default(0)
+  issuedTransactionId String
+  operationId         String?
+  issuedAt            DateTime @default(now())
+  expectedReturnAt    DateTime?
+  status              String   @default("ACTIVE")
+  notes               String?
+  updatedAt           DateTime @updatedAt
 }
 
-model RoleAssignment {
-  id          String    @id @default(cuid())
-  operationId String
-  userId      String
-  role        String
-  team        String?
-  notes       String?
-  operation   Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+model EquipmentRequest {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  organisation        Organisation @relation(fields: [organisationId], references: [id])
+  requestNumber       String   @unique
+  requestedByMemberId String
+  operationId         String?
+  title               String
+  reason              String
+  requiredByDate      DateTime?
+  priority            String   @default("NORMAL")
+  status              String   @default("DRAFT")
+  reviewedByUserId    String?
+  reviewNotes         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  approvedAt          DateTime?
+  completedAt         DateTime?
+
+  lines               EquipmentRequestLine[]
 }
 
-model Comment {
-  id          String   @id @default(cuid())
-  operationId String
-  userId      String
-  body        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  operation   Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactions   CommentReaction[]
+model EquipmentRequestLine {
+  id                      String   @id @default(cuid())
+  equipmentRequestId      String
+  equipmentRequest        EquipmentRequest @relation(fields: [equipmentRequestId], references: [id])
+  inventoryItemId         String
+  inventoryItem           InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantityRequested       Int
+  quantityApproved       Int      @default(0)
+  quantityReserved       Int      @default(0)
+  quantityIssued         Int      @default(0)
+  substitutionAllowed     Boolean  @default(false)
+  suggestedReplacementItemId String?
+  lineStatus             String   @default("PENDING")
+  notes                  String?
 }
 
-model UserFollow {
-  followerId String
-  followingId String
-  createdAt DateTime @default(now())
-  follower User @relation("UserFollowSource", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("UserFollowTarget", fields: [followingId], references: [id], onDelete: Cascade)
-
-  @@id([followerId, followingId])
-  @@index([followingId])
+model StockReservation {
+  id                String   @id @default(cuid())
+  organisationId    String
+  organisation      Organisation @relation(fields: [organisationId], references: [id])
+  equipmentRequestId String?
+  operationId       String?
+  inventoryItemId   String
+  inventoryItem     InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  locationId        String
+  location          InventoryLocation @relation(fields: [locationId], references: [id])
+  quantity          Int
+  reservedByUserId  String
+  expiresAt         DateTime?
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  releasedAt        DateTime?
 }
 
-model Conversation {
-  id             String                    @id @default(cuid())
-  title          String
-  description    String?
-  isChannel      Boolean                   @default(false)
-  isArchived     Boolean                   @default(false)
-  visibility     OrganizationVisibility    @default(PUBLIC)
-  organizationId String?
-  groupId        String?
-  createdById    String
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
-  organization   Organization?             @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  group          ConversationGroup?        @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  createdBy      User                      @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  participants   ConversationParticipant[]
-  channelAccesses ConversationChannelAccess[]
-  readStates     ConversationReadState[]
-  messages       Message[]
-  polls          Poll[]
+model StockScan {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  organisation        Organisation @relation(fields: [organisationId], references: [id])
+  uploadedByUserId    String
+  sourceLocationId    String?
+  sourceLocation      InventoryLocation? @relation(fields: [sourceLocationId], references: [id])
+  imageUrl            String
+  imageHash           String
+  environment         String
+  scanStatus          String   @default("UPLOADED")
+  aiProvider          String   @default("GEMINI")
+  aiModel             String?
+  rawAiResponse       String?
+  averageConfidence   Float?
+  reviewedByUserId    String?
+  reviewedAt          DateTime?
+  createdAt           DateTime @default(now())
 
-  @@index([organizationId, updatedAt])
-  @@index([groupId])
+  detectedItems       StockScanDetectedItem[]
 }
 
-model ConversationGroup {
-  id             String         @id @default(cuid())
-  organizationId String
-  name           String
-  position       Int            @default(0)
-  createdById    String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  createdBy      User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  conversations  Conversation[]
-
-  @@index([organizationId, position])
+model StockScanDetectedItem {
+  id                     String   @id @default(cuid())
+  stockScanId            String
+  stockScan              StockScan @relation(fields: [stockScanId], references: [id])
+  detectedName           String
+  detectedManufacturer   String?
+  detectedCategory       String?
+  detectedVariant        String?
+  detectedQuantity       Int
+  matchedInventoryItemId String?
+  matchedInventoryItem   InventoryItem? @relation(fields: [matchedInventoryItemId], references: [id])
+  confidence             Float
+  boundingBox            String?
+  matchStatus            String   @default("UNKNOWN")
+  reviewerCorrection     String?
+  approvedQuantity       Int?
+  createdAt              DateTime @default(now())
 }
 
-model Poll {
-  id             String       @id @default(cuid())
-  conversationId String
-  createdById    String
-  question       String
-  isMultiVote    Boolean      @default(false)
-  endsAt         DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  createdBy      User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  options        PollOption[]
+model InventoryImport {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  organisation        Organisation @relation(fields: [organisationId], references: [id])
+  uploadedByUserId    String
+  fileName            String
+  fileType            String
+  storageUrl          String
+  importStatus        String   @default("UPLOADED")
+  totalRows           Int      @default(0)
+  validRows           Int      @default(0)
+  invalidRows         Int      @default(0)
+  duplicateRows       Int      @default(0)
+  mappingConfiguration Json?
+  createdAt           DateTime @default(now())
+  approvedAt          DateTime?
+
+  rows                InventoryImportRow[]
 }
 
-model PollOption {
-  id       String     @id @default(cuid())
-  pollId   String
-  text     String
-  position Int        @default(0)
-  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes    PollVote[]
+model InventoryImportRow {
+  id                    String   @id @default(cuid())
+  inventoryImportId     String
+  inventoryImport       InventoryImport @relation(fields: [inventoryImportId], references: [id])
+  rowNumber             Int
+  originalData          Json
+  mappedData            Json
+  validationErrors      Json?
+  action                String
+  matchedInventoryItemId String?
+  matchedInventoryItem   InventoryItem? @relation(fields: [matchedInventoryItemId], references: [id])
+  matchedLocationId     String?
+  matchedLocation       InventoryLocation? @relation(fields: [matchedLocationId], references: [id])
+  status                String   @default("PENDING")
 }
 
-model PollVote {
-  pollOptionId String
-  userId       String
-  createdAt    DateTime   @default(now())
-  pollOption   PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([pollOptionId, userId])
-  @@index([userId])
+model SpreadsheetConnection {
+  id                      String   @id @default(cuid())
+  organisationId          String
+  organisation            Organisation @relation(fields: [organisationId], references: [id])
+  locationId              String?
+  location                InventoryLocation? @relation(fields: [locationId], references: [id])
+  provider                String
+  connectionName          String
+  externalDocumentId      String
+  externalDocumentName    String
+  worksheetName           String
+  syncDirection           String
+  mappingConfiguration    Json?
+  encryptedCredentialsReference String?
+  lastSyncedAt            DateTime?
+  syncStatus              String   @default("DISCONNECTED")
+  createdByUserId         String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
-model ConversationChannelAccess {
-  conversationId String
-  userId         String
-  grantedById    String?
-  createdAt      DateTime @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User @relation("ConversationChannelAccessUser", fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy      User? @relation("ConversationChannelAccessGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
-
-  @@id([conversationId, userId])
-  @@index([userId])
+model LogisticsAuditLog {
+  id              String   @id @default(cuid())
+  organisationId  String
+  organisation    Organisation @relation(fields: [organisationId], references: [id])
+  userId          String
+  action          String
+  entityType      String
+  entityId        String
+  previousData    Json?
+  newData         Json?
+  reason          String?
+  ipAddress       String?
+  createdAt       DateTime @default(now())
 }
 
-model SocialCategory {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  description String?
-  createdById String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  posts       SocialPost[]
+model LogisticsOrgAdmin {
+  id            String   @id @default(cuid())
+  organisationId String
+  userId        String
+  assignedBy    String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@index([createdAt])
-}
-
-model SocialPost {
-  id             String         @id @default(cuid())
-  title          String
-  body           String         @db.Text
-  type           SocialPostType @default(TOPIC)
-  pinned         Boolean        @default(false)
-  locked         Boolean        @default(false)
-  authorId       String
-  categoryId     String?
-  organizationId String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  author         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  category       SocialCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  replies        SocialPostReply[]
-
-  @@index([pinned, updatedAt])
-  @@index([categoryId, updatedAt])
-  @@index([organizationId, updatedAt])
-}
-
-model SocialPostReply {
-  id        String     @id @default(cuid())
-  postId    String
-  authorId  String
-  body      String     @db.Text
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  post      SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@index([postId, createdAt])
-}
-
-model ConversationParticipant {
-  conversationId String
-  userId         String
-  joinedAt       DateTime @default(now())
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([conversationId, userId])
-  @@index([userId])
-}
-
-model ConversationReadState {
-  conversationId String
-  userId         String
-  lastReadAt     DateTime
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([conversationId, userId])
-  @@index([userId, lastReadAt])
-}
-
-model Message {
-  id             String       @id @default(cuid())
-  conversationId String
-  senderId       String
-  body           String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  reactions      MessageReaction[]
-
-  @@index([conversationId, createdAt])
-}
-
-model MessageReaction {
-  messageId String
-  userId    String
-  emoji     String
-  createdAt DateTime @default(now())
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([messageId, userId, emoji])
-  @@index([userId])
-}
-
-model CommentReaction {
-  commentId String
-  userId    String
-  emoji     String
-  createdAt DateTime @default(now())
-  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([commentId, userId, emoji])
-  @@index([userId])
-}
-
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  body      String?
-  read      Boolean          @default(false)
-  link      String?
-  createdAt DateTime         @default(now())
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model AIGeneratedPlan {
-  id          String    @id @default(cuid())
-  operationId String?
-  userId      String
-  prompt      String    @db.Text
-  result      String    @db.Text
-  provider    String?
-  model       String?
-  createdAt   DateTime  @default(now())
-  operation   Operation? @relation(fields: [operationId], references: [id], onDelete: SetNull)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model AfterActionReport {
-  id                String    @id @default(cuid())
-  operationId       String
-  authorId          String
-  summary           String?
-  whatWentWell      String?
-  whatWentWrong     String?
-  lessonsLearned    String?
-  casualtiesOrLosses String?
-  recommendations   String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  operation         Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  author            User      @relation("AARAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-}
-
-model RSVP {
-  id          String     @id @default(cuid())
-  operationId String
-  userId      String
-  status      RSVPStatus @default(MAYBE)
-  note        String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  operation   Operation  @relation(fields: [operationId], references: [id], onDelete: Cascade)
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([operationId, userId])
-}
-
-model ActivityFeedItem {
-  id             String        @id @default(cuid())
-  type           String
-  title          String
-  body           String?
-  userId         String?
-  organizationId String?
-  operationId    String?
-  createdAt      DateTime      @default(now())
-  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  operation      Operation?    @relation(fields: [operationId], references: [id], onDelete: SetNull)
-}
-
-model MissionCategory {
-  id          String            @id @default(cuid())
-  name        String            @unique
-  slug        String            @unique
-  description String?
-  icon        String?
-  templates   MissionTemplate[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-}
-
-model MissionTemplate {
-  id                          String            @id @default(cuid())
-  categoryId                  String
-  name                        String
-  slug                        String
-  summary                     String?
-  description                 String?
-  difficulty                  MissionDifficulty
-  estimatedDuration           String?
-  recommendedPlayersMin       Int               @default(1)
-  recommendedPlayersMax       Int               @default(50)
-  recommendedOrganizationsMin Int               @default(1)
-  recommendedOrganizationsMax Int               @default(5)
-  requiredRoles               String[]          @default([])
-  optionalRoles               String[]          @default([])
-  requiredAssets              String[]          @default([])
-  optionalAssets              String[]          @default([])
-  objectives                  String[]          @default([])
-  preparationChecklist        String[]          @default([])
-  executionSteps              String[]          @default([])
-  successConditions           String[]          @default([])
-  failureConditions           String[]          @default([])
-  risks                       String[]          @default([])
-  rewardTypes                 MissionRewardType[] @default([])
-  tags                        String[]          @default([])
-  aiPromptSeed                String?
-  sourceType                  String?
-  sourceUrl                   String?
-  sourceTitle                 String?
-  sourcePublishedAt           DateTime?
-  addedByMissionIntelligence  Boolean           @default(false)
-  lastVerifiedAt              DateTime?
-  operations                  Operation[]
-  missionSuggestions          MissionSuggestion[] @relation("CreatedFromSuggestion")
-  createdAt                   DateTime          @default(now())
-  updatedAt                   DateTime          @updatedAt
-  category                    MissionCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@unique([categoryId, slug])
-}
-
-model ExternalUpdateSource {
-  id                     String                   @id @default(cuid())
-  name                   String
-  url                    String
-  sourceType             ExternalUpdateSourceType
-  enabled                Boolean                  @default(true)
-  checkFrequencyDays     Int                      @default(6)
-  lastCheckedAt          DateTime?
-  lastSuccessfulCheckAt  DateTime?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @updatedAt
-  items                  ExternalUpdateItem[]
-}
-
-model ExternalUpdateItem {
-  id             String                   @id @default(cuid())
-  sourceId       String
-  externalId     String?
-  url            String?
-  title          String?
-  summary        String?                  @db.Text
-  rawContent     String?                  @db.Text
-  publishedAt    DateTime?
-  detectedAt     DateTime                 @default(now())
-  contentHash    String?
-  status         ExternalUpdateItemStatus @default(NEW)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  source         ExternalUpdateSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  suggestions    MissionSuggestion[]
-
-  @@unique([sourceId, externalId])
-}
-
-model MissionSuggestion {
-  id                          String                        @id @default(cuid())
-  externalUpdateItemId        String?
-  suggestedCategoryName       String?
-  suggestedTemplateName       String?
-  suggestedSummary            String?                       @db.Text
-  suggestedDescription        String?                       @db.Text
-  suggestedDifficulty         String?
-  suggestedDuration           String?
-  suggestedPlayersMin         Int?
-  suggestedPlayersMax         Int?
-  suggestedOrganizationsMin   Int?
-  suggestedOrganizationsMax   Int?
-  suggestedRequiredRoles      String[]
-  suggestedOptionalRoles      String[]
-  suggestedRequiredAssets     Json                          @default("[]")
-  suggestedOptionalAssets     Json                          @default("[]")
-  suggestedObjectives         String[]
-  suggestedPreparationChecklist String[]
-  suggestedExecutionSteps     String[]
-  suggestedSuccessConditions  String[]
-  suggestedFailureConditions  String[]
-  suggestedRisks              String[]
-  suggestedRewardTypes        String[]
-  suggestedTags               String[]
-  suggestedAiPromptSeed       String?                       @db.Text
-  confidenceScore             Float                         @default(0.5)
-  reviewStatus                MissionSuggestionReviewStatus @default(PENDING)
-  reviewedById                String?
-  reviewedAt                  DateTime?
-  adminNotes                  String?                       @db.Text
-  createdMissionTemplateId    String?
-  createdAt                   DateTime                      @default(now())
-  updatedAt                   DateTime                      @updatedAt
-  externalUpdateItem          ExternalUpdateItem?           @relation(fields: [externalUpdateItemId], references: [id], onDelete: SetNull)
-  reviewedBy                  User?                         @relation("MissionSuggestionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  createdMissionTemplate      MissionTemplate?              @relation("CreatedFromSuggestion", fields: [createdMissionTemplateId], references: [id], onDelete: SetNull)
-}
-
-model MissionIntelligenceRun {
-  id               String                       @id @default(cuid())
-  startedAt        DateTime                     @default(now())
-  completedAt      DateTime?
-  status           MissionIntelligenceRunStatus @default(RUNNING)
-  sourcesChecked   Int                          @default(0)
-  itemsFound       Int                          @default(0)
-  newItemsCreated  Int                          @default(0)
-  suggestionsCreated Int                        @default(0)
-  errors           Json                         @default("[]")
-  createdAt        DateTime                     @default(now())
+  @@unique([organisationId, userId])
+  @@index([organisationId, active])
 }

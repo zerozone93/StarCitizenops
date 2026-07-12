@@ -1,18 +1,11 @@
 import Link from 'next/link';
-import { logisticsToolConfig } from '../lib/tool-config';
+import { logisticsToolConfig } from '../src/lib/tool-config';
 
 const metrics = [
   { label: 'Active stock items', value: '184' },
   { label: 'Units available', value: '1,248' },
   { label: 'Open requests', value: '12' },
   { label: 'Pending approvals', value: '4' },
-];
-
-const modules = [
-  { title: 'Stock Ledger', description: 'Track inventory by location, category and operation.' },
-  { title: 'Member Custody', description: 'See what each member is holding and what is due back.' },
-  { title: 'Requests & Reservations', description: 'Approve and issue equipment in a controlled workflow.' },
-  { title: 'AI Scan Review', description: 'Review screenshots and import data before it changes stock.' },
 ];
 
 const tools = [
@@ -60,18 +53,6 @@ export default function HomePage() {
                 <Link className="button button-primary" href={tool.route}>Open Tool</Link>
                 <Link className="button button-secondary" href={tool.adminRoute}>Assign Admins</Link>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="card" style={{ padding: '1.5rem' }}>
-        <h2 style={{ marginTop: 0 }}>Core capabilities</h2>
-        <div className="grid grid-2">
-          {modules.map((module) => (
-            <div key={module.title} style={{ padding: '1rem', borderRadius: '14px', background: 'rgba(255,255,255,0.04)' }}>
-              <h3 style={{ marginBottom: '0.35rem' }}>{module.title}</h3>
-              <p style={{ color: '#cbd5e1', margin: 0 }}>{module.description}</p>
             </div>
           ))}
         </div>

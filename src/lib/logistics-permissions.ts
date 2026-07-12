@@ -1,0 +1,31 @@
+export const logisticsPermissions = {
+  toolAccess: 'logistics.tool.access',
+  view: 'logistics.view',
+  stockCreate: 'logistics.stock.create',
+  stockAdjust: 'logistics.stock.adjust',
+  stockTransfer: 'logistics.stock.transfer',
+  stockIssue: 'logistics.stock.issue',
+  stockReturn: 'logistics.stock.return',
+  requestsCreate: 'logistics.requests.create',
+  requestsReview: 'logistics.requests.review',
+  requestsApprove: 'logistics.requests.approve',
+  requestsReject: 'logistics.requests.reject',
+  importsCreate: 'logistics.imports.create',
+  importsApprove: 'logistics.imports.approve',
+  exportsCreate: 'logistics.exports.create',
+  scansCreate: 'logistics.scans.create',
+  scansReview: 'logistics.scans.review',
+  auditsView: 'logistics.audits.view',
+  adminsAssign: 'logistics.admins.assign',
+  settingsManage: 'logistics.settings.manage',
+} as const;
+
+export const logisticsRoles = {
+  viewer: 'LOGISTICS_VIEWER',
+  member: 'LOGISTICS_MEMBER',
+  operative: 'WAREHOUSE_OPERATIVE',
+  quartermaster: 'QUARTERMASTER',
+  officer: 'LOGISTICS_OFFICER',
+  admin: 'LOGISTICS_ADMIN',
+  auditor: 'LOGISTICS_AUDITOR',
+} as const;
